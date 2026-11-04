@@ -43,14 +43,12 @@ app.get('/', (req, res) => {
             button:hover { background: #1d4ed8; }
             .client-item { background: #334155; padding: 12px; border-radius: 8px; margin-top: 10px; font-size: 14px; }
             .client-item a { color: #38bdf8; word-break: break-all; text-decoration: none; }
-            .btn-edit { background: #eab308; margin-top: 8px; padding: 6px; font-size: 12px; }
         </style>
     </head>
     <body>
         <div class="container">
             <h1>🚀 Jack Digital Dashboard</h1>
             
-            <!-- Create New Form -->
             <div class="card">
                 <h3>Create New Landing Page</h3>
                 <form id="createForm">
@@ -77,7 +75,6 @@ app.get('/', (req, res) => {
                 <div id="resultMsg" style="margin-top: 15px; font-size: 13px; color: #4ade80;"></div>
             </div>
 
-            <!-- Manage List -->
             <div class="card">
                 <h3>Manage Landing Pages</h3>
                 <div id="clientsList">Loading...</div>
@@ -96,12 +93,12 @@ app.get('/', (req, res) => {
                     listDiv.innerHTML = '<p style="color: #94a3b8; font-size: 13px;">No landing pages created yet.</p>';
                     return;
                 }
-                listDiv.innerHTML = clients.map(c => \`
+                listDiv.innerHTML = clients.map(c => `
                     <div class="client-item">
-                        <strong>\${c.clientName}</strong><br>
-                        <a href="/p/\${c.id}" target="_blank">View: /p/\${c.id}</a>
+                        <strong>${c.clientName}</strong><br>
+                        <a href="/p/${c.id}" target="_blank">View: /p/${c.id}</a>
                     </div>
-                \`).join('');
+                `).join('');
             }
 
             document.getElementById('createForm').addEventListener('submit', async (e) => {
@@ -156,7 +153,7 @@ app.post('/api/create-client', (req, res) => {
     clients.push(newClient);
     saveClients(clients);
 
-    const landingPageUrl = \`https://\${req.get('host')}/p/\${newId}\`;
+    const landingPageUrl = `https://${req.get('host')}/p/${newId}`;
     res.json({ success: true, landingPageUrl, client: newClient });
 });
 
@@ -197,7 +194,7 @@ app.get('/p/:id', (req, res) => {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>\${client.clientName} - Exclusive Access</title>
+        <title>${client.clientName} - Exclusive Access</title>
         <script>
           !function(f,b,e,v,n,t,s)
           {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
@@ -207,10 +204,10 @@ app.get('/p/:id', (req, res) => {
           t.src=v;s=b.getElementsByTagName(e)[0];
           s.parentNode.insertBefore(t,s)}(window, document,'script',
           'https://connect.facebook.net/en_US/fbevents.js');
-          fbq('init', '\${client.pixelId}');
+          fbq('init', '${client.pixelId}');
           fbq('track', 'PageView');
         </script>
-        <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=\${client.pixelId}&ev=PageView&noscript=1"/></noscript>
+        <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${client.pixelId}&ev=PageView&noscript=1"/></noscript>
         <style>
             body { font-family: Arial, sans-serif; background: #0f172a; color: #fff; text-align: center; padding: 50px 20px; }
             .card { max-width: 400px; margin: 0 auto; background: #1e293b; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
@@ -222,10 +219,10 @@ app.get('/p/:id', (req, res) => {
     </head>
     <body>
         <div class="card">
-            <img src="\${client.imageUrl}" alt="Channel">
-            <h1>\${client.clientName}</h1>
+            <img src="${client.imageUrl}" alt="Channel">
+            <h1>${client.clientName}</h1>
             <p>Join our exclusive Telegram channel to get instant updates.</p>
-            <a href="\${client.channelLink}" class="btn" target="_blank" onclick="fbq('track', 'Lead');">Join Telegram Channel</a>
+            <a href="${client.channelLink}" class="btn" target="_blank" onclick="fbq('track', 'Lead');">Join Telegram Channel</a>
         </div>
     </body>
     </html>
@@ -250,14 +247,14 @@ app.post('/api/telegram-webhook/:id', async (req, res) => {
                     event_name: "Subscribe",
                     event_time: date,
                     action_source: "system_generated",
-                    event_id: \`sub_\${client.id}_\${userId}_\${date}\`,
+                    event_id: `sub_${client.id}_${userId}_${date}`,
                     user_data: {
                         external_id: crypto.createHash('sha256').update(String(userId)).digest('hex')
                     }
                 }]
             };
 
-            await fetch(\`https://graph.facebook.com/v19.0/\${client.pixelId}/events?access_token=\${client.accessToken}\`, {
+            await fetch(`https://graph.facebook.com/v19.0/${client.pixelId}/events?access_token=${client.accessToken}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
