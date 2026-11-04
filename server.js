@@ -1,146 +1,190 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const app = express();
+const crypto = require('crypto');
 
+const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-const DATA_FILE = path.join(__dirname, 'clients.json');
-const BOT_TOKEN = "9028563887:AAGBY-CmAL2Cn8uVKC-r8mGaRXmBqG-r4bI";
-const RAILWAY_URL = "https://lp-admin-bot-goku001-production-22d1.up.railway.app";
+const CLIENTS_FILE = path.join(__dirname, 'clients.json');
 
-function getClients() {
-    if (!fs.existsSync(DATA_FILE)) return [];
-    return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-}
+const getClients = () => {
+    if (!fs.existsSync(CLIENTS_FILE)) return [];
+    try {
+        return JSON.parse(fs.readFileSync(CLIENTS_FILE, 'utf8'));
+    } catch (e) {
+        return [];
+    }
+};
 
-function saveClients(clients) {
-    fs.writeFileSync(DATA_FILE, JSON.stringify(clients, null, 2));
-}
+const saveClients = (clients) => {
+    fs.writeFileSync(CLIENTS_FILE, JSON.stringify(clients, null, 2));
+};
 
-// 1. एडमिन डैशबोर्ड (Telegram Mini App UI)
-app.get('/', (req, res) => {
+// 1. API: Create New Landing Page
+app.post('/api/create-client', (req, res) => {
+    const { clientName, botUsername, pixelId, accessToken, channelLink, imageUrl } = req.body;
+    
     const clients = getClients();
-    let html = `
+    const newId = 'client_' + Date.now();
+    
+    const newClient = {
+        id: newId,
+        clientName: clientName || 'My Landing Page',
+        botUsername: botUsername || '',
+        pixelId: pixelId || '',
+        accessToken: accessToken || '',
+        channelLink: channelLink || '',
+        imageUrl: imageUrl || 'https://via.placeholder.com/150'
+    };
+
+    clients.push(newClient);
+    saveClients(clients);
+
+    const landingPageUrl = `https://${req.get('host')}/p/${newId}`;
+
+    res.json({
+        success: true,
+        message: "Landing page created successfully!",
+        landingPageUrl,
+        client: newClient
+    });
+});
+
+// 2. API: Manage / Get All Clients List (For Dashboard View)
+app.get('/api/clients', (req, res) => {
+    const clients = getClients();
+    // Return safe data or full data as needed for management
+    res.json(clients);
+});
+
+// 3. API: Update / Edit Client Details (Triggered when user edits and clicks Save)
+app.post('/api/update-client/:id', (req, res) => {
+    const clientId = req.params.id;
+    const { clientName, botUsername, pixelId, accessToken, channelLink, imageUrl } = req.body;
+
+    const clients = getClients();
+    const index = clients.findIndex(c => c.id === clientId);
+
+    if (index === -1) {
+        return res.status(404).json({ success: false, message: "Client not found" });
+    }
+
+    // Update fields dynamically
+    clients[index] = {
+        ...clients[index],
+        clientName: clientName || clients[index].clientName,
+        botUsername: botUsername || clients[index].botUsername,
+        pixelId: pixelId || clients[index].pixelId,
+        accessToken: accessToken || clients[index].accessToken,
+        channelLink: channelLink || clients[index].channelLink,
+        imageUrl: imageUrl || clients[index].imageUrl
+    };
+
+    saveClients(clients);
+
+    res.json({
+        success: true,
+        message: "Landing page updated successfully! Changes are live instantly.",
+        client: clients[index]
+    });
+});
+
+// 4. Dynamic Landing Page Route (Serves live page with updated client data)
+app.get('/p/:id', (req, res) => {
+    const clients = getClients();
+    const client = clients.find(c => c.id === req.params.id);
+
+    if (!client) {
+        return res.status(404).send("Landing page not found or has been removed.");
+    }
+
+    const html = `
     <!DOCTYPE html>
-    <html lang="hi">
+    <html lang="en">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Agency Mini App</title>
-        <script src="https://telegram.org/js/telegram-web-app.js"></script>
+        <title>${client.clientName} - Exclusive Access</title>
+        <!-- Meta Pixel Code -->
+        <script>
+          !function(f,b,e,v,n,t,s)
+          {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+          n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+          if(!f._byq)f._byq=n;n.push=true;n.loaded=!0;n.version='2.0';
+          n.queue=[];t=b.createElement(e);t.async=!0;
+          t.src=v;s=b.getElementsByTagName(e)[0];
+          s.parentNode.insertBefore(t,s)}(window, document,'script',
+          'https://connect.facebook.net/en_US/fbevents.js');
+          fbq('init', '${client.pixelId}');
+          fbq('track', 'PageView');
+        </script>
+        <noscript><img height="1" width="1" style="display:none"
+          src="https://www.facebook.com/tr?id=${client.pixelId}&ev=PageView&noscript=1"
+        /></noscript>
+        <!-- End Meta Pixel Code -->
         <style>
-            body { font-family: Arial, sans-serif; background: var(--tg-theme-bg-color, #0f172a); color: var(--tg-theme-text-color, #f8fafc); padding: 15px; margin: 0; }
-            .container { max-width: 100%; margin: auto; background: var(--tg-theme-secondary-bg-color, #1e293b); padding: 15px; border-radius: 10px; }
-            h2 { color: #38bdf8; text-align: center; font-size: 18px; }
-            .client-card { background: #0f172a; padding: 12px; margin-bottom: 12px; border-radius: 8px; border: 1px solid #334155; }
-            label { font-size: 11px; color: #94a3b8; display: block; margin-top: 5px; }
-            input { width: 100%; padding: 8px; margin-top: 2px; background: #1e293b; border: 1px solid #475569; color: #fff; border-radius: 4px; box-sizing: border-box; font-size: 12px; }
-            button { background: #0284c7; color: white; border: none; padding: 8px 12px; width: 100%; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 10px; font-size: 14px; }
-            button:hover { background: #0ea5e9; }
+            body { font-family: Arial, sans-serif; background: #0f172a; color: #fff; text-align: center; padding: 50px 20px; }
+            .card { max-width: 400px; margin: 0 auto; background: #1e293b; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+            img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-bottom: 20px; border: 2px solid #3b82f6; }
+            h1 { font-size: 24px; margin-bottom: 10px; }
+            p { color: #94a3b8; font-size: 14px; margin-bottom: 25px; }
+            .btn { display: block; background: #2563eb; color: white; padding: 12px; text-decoration: none; border-radius: 8px; font-weight: bold; transition: 0.3s; }
+            .btn:hover { background: #1d4ed8; }
         </style>
     </head>
     <body>
-        <div class="container">
-            <h2>🚀 Agency Mini App Panel</h2>`;
-
-    clients.forEach(c => {
-        html += `
-            <div class="client-card">
-                <form action="/update" method="POST">
-                    <input type="hidden" name="id" value="${c.id}">
-                    <label>क्लाइंट नाम:</label>
-                    <input type="text" name="clientName" value="${c.clientName}">
-                    <label>Meta Pixel ID:</label>
-                    <input type="text" name="pixelId" value="${c.pixelId}">
-                    <label>Access Token:</label>
-                    <input type="text" name="accessToken" value="${c.accessToken}">
-                    <label>Telegram Invite Link:</label>
-                    <input type="text" name="inviteLink" value="${c.inviteLink}">
-                    <button type="submit">सेव करो</button>
-                </form>
-            </div>`;
-    });
-
-    html += `</div>
-    <script>
-        let tg = window.Telegram.WebApp;
-        tg.expand();
-    </script>
-    </body></html>`;
+        <div class="card">
+            <img src="${client.imageUrl}" alt="Channel Image">
+            <h1>${client.clientName}</h1>
+            <p>Join our exclusive Telegram channel to get instant updates and premium content.</p>
+            <a href="${client.channelLink}" class="btn" target="_blank" onclick="fbq('track', 'Lead');">Join Telegram Channel</a>
+        </div>
+    </body>
+    </html>
+    `;
     res.send(html);
 });
 
-// 2. डेटा अपडेट करने की राउट
-app.post('/update', (req, res) => {
-    const { id, clientName, pixelId, accessToken, inviteLink } = req.body;
-    let clients = getClients();
-    clients = clients.map(c => c.id === id ? { id, clientName, pixelId, accessToken, inviteLink } : c);
-    saveClients(clients);
-    res.redirect('/');
-});
-
-// 3. टेलीग्राम बोट अपडेट्स (स्टार्ट कमांड और वेबहुक)
-app.post('/webhook', async (req, res) => {
+// 5. Telegram Webhook for Auto 'Subscribe' CAPI Event
+app.post('/api/telegram-webhook/:id', async (req, res) => {
     try {
+        const clients = getClients();
+        const client = clients.find(c => c.id === req.params.id);
+
+        if (!client) return res.status(404).json({ error: "Client not found" });
+
         const update = req.body;
-
-        if (update.message && update.message.text === '/start') {
-            const chatId = update.message.chat.id;
-
-            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    chat_id: chatId,
-                    text: "नमस्ते बॉस! अपना एडमिन पैनल खोलने के लिए नीचे दिए गए बटन पर क्लिक करें:",
-                    reply_markup: {
-                        inline_keyboard: [[
-                            {
-                                text: "🚀 Open Admin Panel",
-                                web_app: { url: RAILWAY_URL }
-                            }
-                        ]]
-                    }
-                })
-            });
-        }
-
         const event = update.chat_join_request;
+
         if (event) {
             const userId = event.from.id;
-            const date = event.date;
-            const inviteLinkUrl = event.invite_link?.invite_link;
+            const date = event.date || Math.floor(Date.now() / 1000);
 
-            const clients = getClients();
-            const matchedClient = clients.find(c => c.inviteLink === inviteLinkUrl);
-
-            if (matchedClient && matchedClient.pixelId && matchedClient.accessToken) {
-                const payload = {
-                    data: [{
+            const payload = {
+                data: [
+                    {
                         event_name: "Subscribe",
-                        event_time: date || Math.floor(Date.now() / 1000),
+                        event_time: date,
                         action_source: "system_generated",
-                        event_id: `telegram_sub_${userId}_${date}`,
+                        event_id: `sub_${client.id}_${userId}_${date}`,
                         user_data: {
-                            external_id: require('crypto').createHash('sha256').update(String(userId)).digest('hex')
+                            external_id: crypto.createHash('sha256').update(String(userId)).digest('hex')
                         }
-                    }]
-                };
+                    }
+                ]
+            };
 
-                await fetch(`https://graph.facebook.com/v19.0/${matchedClient.pixelId}/events?access_token=${matchedClient.accessToken}`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
-                });
-            }
+            await fetch(`https://graph.facebook.com/v19.0/${client.pixelId}/events?access_token=${client.accessToken}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
         }
-
         res.json({ ok: true });
     } catch (err) {
-        console.error(err);
-        res.status(400).json({ ok: false });
+        res.status(500).json({ ok: false });
     }
 });
 
