@@ -8,6 +8,7 @@ app.use(express.urlencoded({ extended: true }));
 
 const DATA_FILE = path.join(__dirname, 'clients.json');
 const BOT_TOKEN = "9028563887:AAGBY-CmAL2Cn8uVKC-r8mGaRXmBqG-r4bI";
+const RAILWAY_URL = "https://lp-admin-bot-goku001-production-22d1.up.railway.app";
 
 function getClients() {
     if (!fs.existsSync(DATA_FILE)) return [];
@@ -18,7 +19,7 @@ function saveClients(clients) {
     fs.writeFileSync(DATA_FILE, JSON.stringify(clients, null, 2));
 }
 
-// 1. एडमिन डैशबोर्ड (Telegram Mini App UI - जो टेलीग्राम के अंदर खुलेगा)
+// 1. एडमिन डैशबोर्ड (Telegram Mini App UI)
 app.get('/', (req, res) => {
     const clients = getClients();
     let html = `
@@ -65,7 +66,7 @@ app.get('/', (req, res) => {
     html += `</div>
     <script>
         let tg = window.Telegram.WebApp;
-        tg.expand(); // ऐप को फुल स्क्रीन में खोलेगा
+        tg.expand();
     </script>
     </body></html>`;
     res.send(html);
@@ -85,10 +86,8 @@ app.post('/webhook', async (req, res) => {
     try {
         const update = req.body;
 
-        // अगर यूजर ने /start दबाया है, तो उसे 'Open Admin Panel' वाला बटन भेज दो
         if (update.message && update.message.text === '/start') {
             const chatId = update.message.chat.id;
-            const railwayUrl = process.env.RENDER_EXTERNAL_URL || req.protocol + '://' + req.get('host'); // अपने आप रेलवे का URL पकड़ लेगा
 
             await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
                 method: "POST",
@@ -100,7 +99,7 @@ app.post('/webhook', async (req, res) => {
                         inline_keyboard: [[
                             {
                                 text: "🚀 Open Admin Panel",
-                                web_app: { url: railwayUrl }
+                                web_app: { url: RAILWAY_URL }
                             }
                         ]]
                     }
@@ -108,7 +107,6 @@ app.post('/webhook', async (req, res) => {
             });
         }
 
-        // अगर टेलीग्राम पर कोई नया ज्वाइन रिक्वेस्ट आया है, तो CAPI हिट करो
         const event = update.chat_join_request;
         if (event) {
             const userId = event.from.id;
@@ -146,4 +144,5 @@ app.post('/webhook', async (req, res) => {
     }
 });
 
-const PORT = process.env.PORT || 30
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
