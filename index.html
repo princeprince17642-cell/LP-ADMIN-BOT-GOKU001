@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agency Dashboard</title>
+    <title>Jack Digital Agency Dashboard</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body { font-family: Arial, sans-serif; background: #0f172a; color: #fff; margin: 0; padding: 20px; }
@@ -16,47 +16,80 @@
         button:hover { background: #1d4ed8; }
         .client-item { background: #334155; padding: 12px; border-radius: 8px; margin-top: 10px; font-size: 14px; }
         .client-item a { color: #38bdf8; word-break: break-all; text-decoration: none; }
+        .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .nav-tab { flex: 1; padding: 10px; background: #1e293b; border: none; color: #fff; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .nav-tab.active { background: #2563eb; }
+        .section { display: none; }
+        .section.active { display: block; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🚀 Jack Digital Dashboard</h1>
+        <h1>🚀 Jack Digital Agency Dashboard</h1>
         
-        <div class="card">
-            <h3>Create New Landing Page</h3>
-            <form id="createForm">
-                <label>Client Name</label>
-                <input type="text" id="clientName" required placeholder="e.g. Cybox">
-                
-                <label>Bot Username</label>
-                <input type="text" id="botUsername" required placeholder="@Syvoxlandingpagebot">
-                
-                <label>Meta Pixel ID</label>
-                <input type="text" id="pixelId" required placeholder="1115936117748992">
-                
-                <label>Meta Access Token</label>
-                <textarea id="accessToken" required placeholder="EABBqGSM..."></textarea>
-                
-                <label>Telegram Channel Invite Link</label>
-                <input type="text" id="channelLink" required placeholder="https://t.me/+...">
-                
-                <label>Channel Image URL</label>
-                <input type="text" id="imageUrl" placeholder="https://... (Optional)">
-                
-                <button type="submit">Generate Landing Page</button>
-            </form>
-            <div id="resultMsg" style="margin-top: 15px; font-size: 13px; color: #4ade80;"></div>
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchTab('create')">Create New Landing Page</button>
+            <button class="nav-tab" onclick="switchTab('pages')">Your Pages</button>
         </div>
 
-        <div class="card">
-            <h3>Manage Landing Pages</h3>
-            <div id="clientsList">Loading...</div>
+        <!-- Create New Landing Page Section -->
+        <div id="createSection" class="section active">
+            <div class="card">
+                <h3>Create New Landing Page & Bot Tracking</h3>
+                <form id="createForm">
+                    <label>Client Name</label>
+                    <input type="text" id="clientName" required placeholder="e.g. Cybox">
+                    
+                    <label>Telegram Bot Username</label>
+                    <input type="text" id="botUsername" required placeholder="@Syvoxlandingpagebot">
+
+                    <label>Telegram Bot API Token (For Auto Tracking)</label>
+                    <input type="text" id="botApiToken" required placeholder="123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ">
+                    
+                    <label>Meta Pixel ID</label>
+                    <input type="text" id="pixelId" required placeholder="1115936117748992">
+                    
+                    <label>Meta Access Token (CAPI)</label>
+                    <textarea id="accessToken" required placeholder="EABBqGSM..."></textarea>
+                    
+                    <label>Telegram Channel Invite Link</label>
+                    <input type="text" id="channelLink" required placeholder="https://t.me/+...">
+                    
+                    <label>Channel Image URL</label>
+                    <input type="text" id="imageUrl" placeholder="https://... (Optional)">
+                    
+                    <button type="submit">Create Landing Page & Connect Bot</button>
+                </form>
+                <div id="resultMsg" style="margin-top: 15px; font-size: 13px; color: #4ade80;"></div>
+            </div>
+        </div>
+
+        <!-- Your Pages / Manage Section -->
+        <div id="pagesSection" class="section">
+            <div class="card">
+                <h3>Your Created Landing Pages</h3>
+                <div id="clientsList">Loading...</div>
+            </div>
         </div>
     </div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
+
+        function switchTab(tab) {
+            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            if(tab === 'create') {
+                document.querySelectorAll('.nav-tab')[0].classList.add('active');
+                document.getElementById('createSection').classList.add('active');
+            } else {
+                document.querySelectorAll('.nav-tab')[1].classList.add('active');
+                document.getElementById('pagesSection').classList.add('active');
+                loadClients();
+            }
+        }
 
         async function loadClients() {
             const res = await fetch('/api/clients');
@@ -68,8 +101,9 @@
             }
             listDiv.innerHTML = clients.map(c => `
                 <div class="client-item">
-                    <strong>${c.clientName}</strong><br>
-                    <a href="/p/${c.id}" target="_blank">View: /p/${c.id}</a>
+                    <strong>Client: ${c.clientName}</strong><br>
+                    <span>Bot: ${c.botUsername}</span><br>
+                    <a href="/p/${c.id}" target="_blank">View Landing Page: /p/${c.id}</a>
                 </div>
             `).join('');
         }
@@ -79,6 +113,7 @@
             const data = {
                 clientName: document.getElementById('clientName').value,
                 botUsername: document.getElementById('botUsername').value,
+                botApiToken: document.getElementById('botApiToken').value,
                 pixelId: document.getElementById('pixelId').value,
                 accessToken: document.getElementById('accessToken').value,
                 channelLink: document.getElementById('channelLink').value,
@@ -94,13 +129,10 @@
             if(result.success) {
                 document.getElementById('resultMsg').innerText = "Success! Link: " + result.landingPageUrl;
                 document.getElementById('createForm').reset();
-                loadClients();
             } else {
                 alert("Error creating landing page");
             }
         });
-
-        loadClients();
     </script>
 </body>
 </html>
