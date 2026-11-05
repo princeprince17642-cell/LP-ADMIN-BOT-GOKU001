@@ -6,13 +6,25 @@
     <title>GOKU AGENCY STORE</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        body { background: #070913; color: #fff; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
+        
+        /* नियन थीम कलर्स */
+        :root {
+            --bg-color: #050711;
+            --box-bg: #0b1120;
+            --blue-glow: #3b82f6;
+            --yellow-glow: #facc15;
+            --white-text: #ffffff;
+            --gray-text: #94a3b8;
+            --border-color: #1e293b;
+        }
 
-        /* --- SPLASH / LOADING SCREEN --- */
+        body { background: var(--bg-color); color: var(--white-text); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
+
+        /* --- SPLASH / LOADING SCREEN (नया एडवांस UI) --- */
         #splash {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: #070913;
+            background: var(--bg-color);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -20,89 +32,136 @@
             z-index: 9999;
             transition: opacity 0.5s ease;
         }
-        .spinner-logo {
-            width: 100px; height: 100px;
-            border-radius: 50%;
-            border: 4px solid rgba(59, 130, 246, 0.2);
-            border-top: 4px solid #3b82f6;
-            animation: spin 1s linear infinite, pulseGlow 2s ease-in-out infinite;
-            object-fit: cover;
+        
+        /* नया सर्कल लोगो एनिमेशन */
+        .spinner-logo-container {
+            position: relative;
+            width: 150px; height: 150px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
+        
+        /* नया गोल लोगो */
+        .spinner-logo {
+            width: 130px; height: 130px;
+            border-radius: 50%;
+            object-fit: cover;
+            animation: fadeIn 1s ease-in-out;
+        }
+        
+        /* लोगो के पीछे ग्लोइंग रिंग */
+        .glow-ring {
+            position: absolute;
+            width: 150px; height: 150px;
+            border-radius: 50%;
+            border: 4px solid transparent;
+            border-top: 4px solid var(--blue-glow);
+            animation: spin 1.5s linear infinite, ringPulse 3s ease-in-out infinite;
+        }
+        
         .splash-title {
-            margin-top: 25px;
-            font-size: 22px;
-            font-weight: 800;
-            letter-spacing: 2px;
-            background: linear-gradient(90deg, #facc15, #ffffff, #3b82f6);
+            margin-top: 30px;
+            font-size: 24px;
+            font-weight: 900;
+            letter-spacing: 3px;
+            /* थ्री-कलर ग्लोइंग टेक्स्ट */
+            background: linear-gradient(90deg, var(--yellow-glow), #ffffff, var(--blue-glow));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            text-shadow: 0 0 10px rgba(255,255,255,0.4), 0 0 20px var(--blue-glow);
             animation: fadeIn 1.2s ease-in-out;
         }
+
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 15px rgba(59,130,246,0.3); } 50% { box-shadow: 0 0 35px rgba(59,130,246,0.7); } }
+        @keyframes ringPulse { 0%, 100% { box-shadow: 0 0 15px rgba(59,130,246,0.3); } 50% { box-shadow: 0 0 40px var(--blue-glow); } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
         /* --- MAIN APP CONTAINER --- */
         #app { display: none; flex-direction: column; min-height: 100vh; padding-bottom: 80px; }
 
-        /* --- HEADER --- */
+        /* --- HEADER (ADVANCED & GLOWING) --- */
         header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 15px 20px;
-            background: #0b1120;
-            border-bottom: 1px solid #1e293b;
+            background: var(--box-bg);
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
         }
         .brand-box {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
         }
+        /* हेडर में नया गोल लोगो */
         .brand-logo {
-            width: 38px; height: 38px;
+            width: 42px; height: 42px;
             border-radius: 50%;
-            border: 2px solid #3b82f6;
+            border: 2px solid var(--blue-glow);
             object-fit: cover;
-            box-shadow: 0 0 10px rgba(59,130,246,0.5);
+            box-shadow: 0 0 15px var(--blue-glow);
+            transition: 0.3s;
         }
+        .brand-logo:hover { transform: scale(1.1); }
+        
         .brand-text {
-            font-size: 16px;
+            font-size: 18px;
             font-weight: 800;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.8px;
+            text-shadow: 0 0 5px rgba(255,255,255,0.2);
         }
-        .text-goku { color: #facc15; }
-        .text-agency { color: #ffffff; }
-        .text-store { color: #3b82f6; }
+        .text-goku { color: var(--yellow-glow); }
+        .text-agency { color: var(--white-text); }
+        .text-store { color: var(--blue-glow); }
 
         .profile-btn {
             background: #1e293b;
             border: 1px solid #334155;
-            width: 40px; height: 40px;
+            width: 44px; height: 44px;
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
             cursor: pointer;
-            transition: 0.2s;
+            transition: 0.3s, box-shadow 0.3s;
+            font-size: 18px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
         }
+        .profile-btn:hover { background: #334155; box-shadow: 0 0 10px rgba(59,130,246,0.4); }
         .profile-btn:active { transform: scale(0.92); }
 
-        /* --- TABS CONTENT --- */
-        .tab-content { display: none; padding: 25px 20px; flex: 1; text-align: center; }
+        /* --- TABS CONTENT (GLOWING ADVANCED UI) --- */
+        .tab-content { display: none; padding: 25px 20px; flex: 1; text-align: center; animation: fadeIn 0.5s ease-in-out; }
         .tab-content.active { display: block; }
-        h2 { font-size: 20px; margin-bottom: 10px; color: #f8fafc; }
-        p { color: #94a3b8; font-size: 14px; }
+        
+        /* तगड़ा कार्ड डिज़ाइन */
+        .content-card {
+            background: var(--box-bg);
+            border-radius: 16px;
+            padding: 40px 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            transition: 0.3s;
+            border-top: 2px solid var(--blue-glow);
+        }
+        .content-card:hover { box-shadow: 0 0 20px var(--blue-glow); }
 
-        /* --- BOTTOM NAVIGATION --- */
+        h2 { font-size: 22px; font-weight: 800; margin-bottom: 12px; color: var(--white-text); text-shadow: 0 0 5px rgba(255,255,255,0.2); }
+        p { color: var(--gray-text); font-size: 15px; line-height: 1.6; }
+
+        /* --- BOTTOM NAVIGATION (GLOWING ADVANCED UI) --- */
         .bottom-nav {
             position: fixed;
             bottom: 0; left: 0; width: 100%;
-            background: #0b1120;
-            border-top: 1px solid #1e293b;
+            background: var(--box-bg);
+            border-top: 1px solid var(--border-color);
             display: flex;
             justify-content: space-around;
-            padding: 10px 0;
+            padding: 12px 0;
             z-index: 1000;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.4);
         }
         .nav-item {
             background: none; border: none;
@@ -110,28 +169,45 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 4px;
-            font-size: 12px;
+            gap: 5px;
+            font-size: 13px;
             cursor: pointer;
-            transition: 0.2s;
+            transition: 0.2s, text-shadow 0.2s;
+            position: relative;
         }
-        .nav-item svg { width: 22px; height: 22px; fill: currentColor; }
-        .nav-item.active { color: #3b82f6; }
+        .nav-item svg { width: 24px; height: 24px; fill: currentColor; }
+        
+        /* एक्टिव टैब का ग्लोइंग इफ़ेक्ट */
+        .nav-item.active { color: var(--blue-glow); text-shadow: 0 0 10px var(--blue-glow); }
+        .nav-item.active::after {
+            content: '';
+            position: absolute;
+            top: -12px;
+            width: 30px; height: 3px;
+            background: var(--blue-glow);
+            border-radius: 2px;
+            box-shadow: 0 0 10px var(--blue-glow);
+        }
     </style>
 </head>
 <body>
 
-    <!-- Splash Screen -->
+    <!-- Splash Screen (नया Advanced UI + नया लोगो) -->
     <div id="splash">
-        <img src="https://i.imgur.com/7k123ab.png" class="spinner-logo" alt="GOKU Logo" id="splashImg">
+        <div class="spinner-logo-container">
+            <div class="glow-ring"></div>
+            <!-- ये रहा तेरा नया GDX AGENCY वाला लोगो -->
+            <img src="https://i.imgur.com/7k123ab.png" class="spinner-logo" alt="GOKU AGENCY">
+        </div>
         <div class="splash-title">GOKU AGENCY STORE</div>
     </div>
 
     <!-- Main App UI -->
     <div id="app">
-        <!-- Header -->
+        <!-- Header (Advanced + नया लोगो) -->
         <header>
             <div class="brand-box">
+                <!-- ये रहा हेडर में नया गोल लोगो -->
                 <img src="https://i.imgur.com/7k123ab.png" class="brand-logo" alt="Logo">
                 <div class="brand-text">
                     <span class="text-goku">GOKU</span> <span class="text-agency">AGENCY</span> <span class="text-store">STORE</span>
@@ -142,31 +218,42 @@
             </div>
         </header>
 
-        <!-- Tab 1: Home -->
-        <div id="tab-home" class="tab-content active">
-            <h2>Welcome to Dashboard</h2>
-            <p>Home screen is ready. More features coming soon!</p>
+        <!-- Tab Content Containers -->
+        <div class="main-content">
+            <!-- Tab 1: Home -->
+            <div id="tab-home" class="tab-content active">
+                <div class="content-card">
+                    <h2>Welcome, Boss!</h2>
+                    <p>Welcome to the ultimate GOKU AGENCY STORE Dashboard. Everything is set up and glowing. More modules coming soon!</p>
+                </div>
+            </div>
+
+            <!-- Tab 2: Landing Page -->
+            <div id="tab-landing" class="tab-content">
+                <div class="content-card">
+                    <h2>Landing Pages</h2>
+                    <p>Build and manage your high-converting landing pages. Select a template to begin.</p>
+                </div>
+            </div>
+
+            <!-- Tab 3: Orders -->
+            <div id="tab-orders" class="tab-content">
+                <div class="content-card">
+                    <h2>Your Orders</h2>
+                    <p>View your past orders, active subscriptions, and page status.</p>
+                </div>
+            </div>
+
+            <!-- Tab 4: Account -->
+            <div id="tab-account" class="tab-content">
+                <div class="content-card">
+                    <h2>Account Overview</h2>
+                    <p>Manage your profile, wallet balance, and settings.</p>
+                </div>
+            </div>
         </div>
 
-        <!-- Tab 2: Landing Page -->
-        <div id="tab-landing" class="tab-content">
-            <h2>Landing Pages</h2>
-            <p>Landing page builder modules will appear here.</p>
-        </div>
-
-        <!-- Tab 3: Orders -->
-        <div id="tab-orders" class="tab-content">
-            <h2>Your Orders</h2>
-            <p>Track your active pages and order statuses here.</p>
-        </div>
-
-        <!-- Tab 4: Account -->
-        <div id="tab-account" class="tab-content">
-            <h2>Account Details</h2>
-            <p>Manage your profile, balance, and deposit history here.</p>
-        </div>
-
-        <!-- Bottom Navigation Bar -->
+        <!-- Bottom Navigation Bar (Glowing Advanced UI) -->
         <nav class="bottom-nav">
             <button class="nav-item active" onclick="switchTab('home')" id="nav-home">
                 <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
@@ -197,17 +284,23 @@
                     splash.style.display = 'none';
                     document.getElementById('app').style.display = 'flex';
                 }, 500);
-            }, 1800);
+            }, 2500); // 2.5 सेकंड का तगड़ा स्प्लैश
         });
 
         // Tab Switching Logic
         function switchTab(tabName) {
+            // सारे कंटेंट छिपाओ और ननाव आइकॉन डीएक्टिवेट करो
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
 
-            document.getElementById('tab-' + tabName).classList.add('active');
-            const navBtn = document.getElementById('nav-' + tabName);
-            if (navBtn) navBtn.classList.add('active');
+            // सेलेक्टेड कंटेंट दिखाओ और आइकॉन एक्टिवेट करो
+            const activeTab = document.getElementById('tab-' + tabName);
+            const activeNav = document.getElementById('nav-' + tabName);
+            
+            if(activeTab && activeNav) {
+                activeTab.classList.add('active');
+                activeNav.classList.add('active');
+            }
         }
     </script>
 </body>
