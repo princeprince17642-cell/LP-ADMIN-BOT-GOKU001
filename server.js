@@ -7,6 +7,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Railway Volume Persistent Storage Path
 const DATA_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || __dirname;
 const CLIENTS_FILE = path.join(DATA_DIR, 'clients.json');
 
@@ -23,10 +24,12 @@ const saveClients = (clients) => {
     fs.writeFileSync(CLIENTS_FILE, JSON.stringify(clients, null, 2));
 };
 
+// Serve Dashboard UI
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+// --- API ROUTES: Create & Manage Clients ---
 app.post('/api/create-client', async (req, res) => {
     const { clientName, customDomain, botUsername, botApiToken, pixelId, accessToken, channelLink, imageUrl } = req.body;
     const clients = getClients();
@@ -88,6 +91,7 @@ app.post('/api/update-client/:id', (req, res) => {
     res.json({ success: true, client: clients[index] });
 });
 
+// --- Dynamic Landing Page Route ---
 app.get('/p/:id', (req, res) => {
     const clients = getClients();
     const client = clients.find(c => c.id === req.params.id);
@@ -132,6 +136,7 @@ app.get('/p/:id', (req, res) => {
 </html>`);
 });
 
+// --- Telegram Join Request Webhook (CAPI Tracking) ---
 app.post('/api/telegram-webhook/:id', async (req, res) => {
     try {
         const clients = getClients();
@@ -169,6 +174,7 @@ app.post('/api/telegram-webhook/:id', async (req, res) => {
     }
 });
 
+// --- Admin Bot Webhook for /start command ---
 app.post('/api/admin-bot-webhook', async (req, res) => {
     try {
         const update = req.body;
@@ -185,9 +191,11 @@ app.post('/api/admin-bot-webhook', async (req, res) => {
                         chat_id: chatId,
                         text: "नमस्ते बॉस! अपना एडमिन पैनल खोलने के लिए नीचे दिए गए बटन पर क्लिक करें:",
                         reply_markup: {
-                            inline_keyboard: [[
-                                { text: "🚀 Open Admin Panel", web_app: { url: webAppUrl } }
-                            ]}
+                            inline_keyboard: [
+                                [
+                                    { text: "🚀 Open Admin Panel", web_app: { url: webAppUrl } }
+                                ]
+                            ]
                         }
                     })
                 });
