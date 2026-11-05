@@ -1,249 +1,123 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GOKU AGENCY STORE</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        
-        :root {
-            --bg-color: #070913;
-            --box-bg: #0b1120;
-            --blue-glow: #3b82f6;
-            --yellow-glow: #facc15;
-            --white-text: #ffffff;
-            --gray-text: #94a3b8;
-            --border-color: #1e293b;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>GOKU AGENCY STORE</title>
+<meta name="theme-color" content="#070913">
+<style>
+:root{
+  --bg:#070913; --card:#0b1120;
+  --blue:#3b82f6; --yellow:#facc15; --text:#e8eefc; --muted:#7f8cab;
+  --line:rgba(59,130,246,.22);
+  --glow-b:0 0 22px rgba(59,130,246,.3); --glow-y:0 0 22px rgba(250,204,21,.25);
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;min-height:100%}
+body{background:radial-gradient(800px 420px at 50% -140px,rgba(59,130,246,.18),transparent 70%),radial-gradient(500px 300px at 100% 100%,rgba(250,204,21,.05),transparent 70%),var(--bg);background-attachment:fixed;overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:60}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 
-        body { background: var(--bg-color); color: var(--white-text); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
+/* Splash */
+#splash{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:36px;transition:opacity .8s ease,visibility .8s}
+#splash.hide{opacity:0;visibility:hidden}
+.ring{position:relative;width:140px;height:140px;border-radius:50%;display:grid;place-items:center}
+.ring::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,transparent 0 50%,var(--blue) 100%);-webkit-mask:radial-gradient(circle,transparent 62px,#000 63px);mask:radial-gradient(circle,transparent 62px,#000 63px);animation:spin 1.3s linear infinite;filter:drop-shadow(0 0 10px var(--blue))}
+.ring::after{content:"";position:absolute;inset:-14px;border-radius:50%;background:radial-gradient(circle,rgba(59,130,246,.22),transparent 68%);animation:breathe 2.4s ease-in-out infinite}
+.logo{width:112px;height:112px;border-radius:50%;background:var(--card);border:1px solid var(--line);display:grid;place-items:center;font-weight:800;font-size:32px;color:var(--yellow);text-shadow:0 0 14px rgba(250,204,21,.6);box-shadow:inset 0 0 26px rgba(59,130,246,.25);position:relative;z-index:1}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes breathe{50%{opacity:.45}}
+.splash-title{font-size:24px;font-weight:800;letter-spacing:.14em;text-align:center;color:#fff;text-shadow:0 0 8px var(--blue),0 0 26px rgba(59,130,246,.75)}
 
-        /* --- SPLASH / LOADING SCREEN --- */
-        #splash {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg-color);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            transition: opacity 0.5s ease;
-        }
-        
-        .spinner-logo-container {
-            position: relative;
-            width: 130px; height: 130px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .spinner-logo {
-            width: 110px; height: 110px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid var(--blue-glow);
-            box-shadow: 0 0 20px var(--blue-glow);
-            animation: fadeIn 1s ease-in-out;
-        }
-        
-        .glow-ring {
-            position: absolute;
-            width: 130px; height: 130px;
-            border-radius: 50%;
-            border: 3px solid transparent;
-            border-top: 3px solid var(--blue-glow);
-            animation: spin 1s linear infinite;
-        }
-        
-        .splash-title {
-            margin-top: 25px;
-            font-size: 22px;
-            font-weight: 800;
-            letter-spacing: 2px;
-            background: linear-gradient(90deg, var(--yellow-glow), #ffffff, var(--blue-glow));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0 0 15px rgba(59,130,246,0.5);
-        }
+/* Header */
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:rgba(7,9,19,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line);box-shadow:0 8px 28px rgba(59,130,246,.08)}
+.brand{display:flex;align-items:center;gap:10px}
+.mini-logo{width:38px;height:38px;border-radius:50%;border:2px solid var(--blue);box-shadow:var(--glow-b);display:grid;place-items:center;background:var(--card);color:var(--yellow);font-weight:800;font-size:14px}
+.brand-name{font-weight:800;font-size:17px;letter-spacing:.06em}
+.b-y{color:var(--yellow);text-shadow:0 0 10px rgba(250,204,21,.55)}
+.b-w{color:#fff}
+.b-b{color:var(--blue);text-shadow:0 0 10px rgba(59,130,246,.7)}
+.icon-btn{width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--card);display:grid;place-items:center;box-shadow:var(--glow-b);transition:transform .2s}
+.icon-btn:active{transform:scale(.92)}
+.icon-btn svg{width:20px;height:20px;stroke:var(--blue);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+/* Content */
+main{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:640px;margin:0 auto}
+.view{display:none;animation:in .35s ease}
+.view.active{display:block}
+@keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:var(--glow-b),inset 0 0 0 1px rgba(255,255,255,.02)}
+.card.gold{border-color:rgba(250,204,21,.28);box-shadow:var(--glow-y)}
+.card h2{font-size:20px;margin-bottom:6px}
+.card p{font-size:14px;color:var(--muted)}
 
-        /* --- MAIN APP --- */
-        #app { display: none; flex-direction: column; min-height: 100vh; padding-bottom: 80px; }
+/* Floating bottom nav */
+nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:50;max-width:612px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);padding:6px;border-radius:24px;background:rgba(11,17,32,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--line);box-shadow:0 10px 34px rgba(0,0,0,.55),0 0 26px rgba(59,130,246,.16)}
+.pill{position:absolute;top:6px;bottom:6px;left:6px;width:calc((100% - 12px)/4);border-radius:18px;background:linear-gradient(to bottom,rgba(59,130,246,.28),rgba(59,130,246,.08));border:1px solid rgba(59,130,246,.45);box-shadow:0 0 20px rgba(59,130,246,.4);transition:transform .4s cubic-bezier(.4,.1,.2,1);pointer-events:none}
+.pill::before{content:"";position:absolute;top:-1px;left:50%;width:46%;height:2px;transform:translateX(-50%);background:var(--blue);border-radius:2px;box-shadow:0 0 12px 2px var(--blue)}
+.tab{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:9px 2px 8px;color:var(--muted);font-size:11px;font-weight:600;white-space:nowrap;transition:color .3s}
+.tab svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:filter .3s}
+.tab.active{color:var(--yellow)}
+.tab.active svg{filter:drop-shadow(0 0 6px var(--yellow))}
 
-        /* --- HEADER --- */
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 18px;
-            background: var(--box-bg);
-            border-bottom: 1px solid var(--border-color);
-        }
-        .brand-box {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .brand-logo {
-            width: 38px; height: 38px;
-            border-radius: 50%;
-            border: 2px solid var(--blue-glow);
-            object-fit: cover;
-            box-shadow: 0 0 10px var(--blue-glow);
-        }
-        .brand-text {
-            font-size: 16px;
-            font-weight: 800;
-        }
-        .text-goku { color: var(--yellow-glow); }
-        .text-agency { color: var(--white-text); }
-        .text-store { color: var(--blue-glow); }
-
-        .profile-btn {
-            background: #1e293b;
-            border: 1px solid #334155;
-            width: 38px; height: 38px;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-        }
-
-        /* --- TABS --- */
-        .tab-content { display: none; padding: 25px 20px; flex: 1; text-align: center; }
-        .tab-content.active { display: block; }
-        
-        .content-card {
-            background: var(--box-bg);
-            border-radius: 14px;
-            padding: 30px 20px;
-            border: 1px solid var(--border-color);
-        }
-
-        h2 { font-size: 20px; margin-bottom: 8px; color: var(--white-text); }
-        p { color: var(--gray-text); font-size: 14px; }
-
-        /* --- BOTTOM NAVIGATION --- */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0; left: 0; width: 100%;
-            background: var(--box-bg);
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-around;
-            padding: 10px 0;
-            z-index: 1000;
-        }
-        .nav-item {
-            background: none; border: none;
-            color: var(--gray-text);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            font-size: 12px;
-            cursor: pointer;
-        }
-        .nav-item svg { width: 22px; height: 22px; fill: currentColor; }
-        .nav-item.active { color: var(--blue-glow); }
-    </style>
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition-duration:.01s!important}}
+</style>
 </head>
 <body>
 
-    <!-- Splash Screen -->
-    <div id="splash">
-        <div class="spinner-logo-container">
-            <div class="glow-ring"></div>
-            <!-- यहाँ डेटा यूआरआई (Base64) या सही डायरेक्ट इमेज यूआरएल लगेगा जिससे लोगो फटेगा नहीं -->
-            <img src="https://i.ibb.co/6R3vZ8S/gdx-logo.png" class="spinner-logo" alt="Logo" onerror="this.src='https://i.imgur.com/7k123ab.png'">
-        </div>
-        <div class="splash-title">GOKU AGENCY STORE</div>
-    </div>
+<div id="splash">
+  <div class="ring"><div class="logo">G</div></div>
+  <div class="splash-title">GOKU AGENCY STORE</div>
+</div>
 
-    <!-- Main App -->
-    <div id="app">
-        <header>
-            <div class="brand-box">
-                <img src="https://i.ibb.co/6R3vZ8S/gdx-logo.png" class="brand-logo" alt="Logo" onerror="this.src='https://i.imgur.com/7k123ab.png'">
-                <div class="brand-text">
-                    <span class="text-goku">GOKU</span> <span class="text-agency">AGENCY</span> <span class="text-store">STORE</span>
-                </div>
-            </div>
-            <div class="profile-btn" onclick="switchTab('account')">👤</div>
-        </header>
+<header>
+  <div class="brand">
+    <div class="mini-logo">G</div>
+    <div class="brand-name"><span class="b-y">GOKU</span> <span class="b-w">AGENCY</span> <span class="b-b">STORE</span></div>
+  </div>
+  <button class="icon-btn" aria-label="Open account" data-go="account">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+  </button>
+</header>
 
-        <div id="tab-home" class="tab-content active">
-            <div class="content-card">
-                <h2>Welcome Home</h2>
-                <p>Upcoming features and modules will appear here shortly.</p>
-            </div>
-        </div>
+<main>
+  <section class="view active" id="home"><div class="card gold"><h2>Home</h2><p>Your content goes here.</p></div></section>
+  <section class="view" id="landing"><div class="card"><h2>Landing Page</h2><p>Your content goes here.</p></div></section>
+  <section class="view" id="orders"><div class="card"><h2>Orders</h2><p>Your content goes here.</p></div></section>
+  <section class="view" id="account"><div class="card"><h2>Account</h2><p>Your content goes here.</p></div></section>
+</main>
 
-        <div id="tab-landing" class="tab-content">
-            <div class="content-card">
-                <h2>Landing Pages</h2>
-                <p>Manage your landing pages here.</p>
-            </div>
-        </div>
+<nav id="nav">
+  <div class="pill" id="pill"></div>
+  <button class="tab active" data-go="home"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Home</button>
+  <button class="tab" data-nav data-go="landing"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 14h8"/></svg>Landing Page</button>
+  <button class="tab" data-go="orders"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>Orders</button>
+  <button class="tab" data-go="account"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>Account</button>
+</nav>
 
-        <div id="tab-orders" class="tab-content">
-            <div class="content-card">
-                <h2>Orders</h2>
-                <p>View your order history here.</p>
-            </div>
-        </div>
+<script>
+(function(){
+  setTimeout(function(){
+    var s=document.getElementById('splash');
+    s.classList.add('hide');
+    setTimeout(function(){s.remove()},900);
+  },2000);
 
-        <div id="tab-account" class="tab-content">
-            <div class="content-card">
-                <h2>Account</h2>
-                <p>Manage your wallet and profile details here.</p>
-            </div>
-        </div>
-
-        <nav class="bottom-nav">
-            <button class="nav-item active" onclick="switchTab('home')" id="nav-home">
-                <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
-                Home
-            </button>
-            <button class="nav-item" onclick="switchTab('landing')" id="nav-landing">
-                <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
-                Landing Page
-            </button>
-            <button class="nav-item" onclick="switchTab('orders')" id="nav-orders">
-                <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
-                Orders
-            </button>
-            <button class="nav-item" onclick="switchTab('account')" id="nav-account">
-                <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-                Account
-            </button>
-        </nav>
-    </div>
-
-    <script>
-        window.addEventListener('load', () => {
-            setTimeout(() => {
-                const splash = document.getElementById('splash');
-                splash.style.opacity = '0';
-                setTimeout(() => {
-                    splash.style.display = 'none';
-                    document.getElementById('app').style.display = 'flex';
-                }, 500);
-            }, 2000);
-        });
-
-        function switchTab(tabName) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            document.getElementById('tab-' + tabName).classList.add('active');
-            document.getElementById('nav-' + tabName).classList.add('active');
-        }
-    </script>
+  var ids=['home','landing','orders','account'];
+  var views=document.querySelectorAll('.view'), tabs=document.querySelectorAll('.tab'), pill=document.getElementById('pill');
+  function go(id){
+    views.forEach(function(v){v.classList.toggle('active',v.id===id)});
+    tabs.forEach(function(t){t.classList.toggle('active',t.dataset.go===id)});
+    pill.style.transform='translateX('+(ids.indexOf(id)*100)+'%)';
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+  document.querySelectorAll('[data-go]').forEach(function(el){
+    el.addEventListener('click',function(){go(el.dataset.go)});
+  });
+})();
+</script>
 </body>
 </html>

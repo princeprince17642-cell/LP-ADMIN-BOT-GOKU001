@@ -7,7 +7,6 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Railway Volume Persistent Storage Path
 const DATA_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || __dirname;
 const CLIENTS_FILE = path.join(DATA_DIR, 'clients.json');
 
@@ -24,7 +23,7 @@ const saveClients = (clients) => {
     fs.writeFileSync(CLIENTS_FILE, JSON.stringify(clients, null, 2));
 };
 
-// --- Subdomain & Landing Page Handler (Wildcard logic) ---
+// Wildcard Subdomain Handler
 app.use((req, res, next) => {
     const host = req.headers.host || '';
     const parts = host.split('.');
@@ -41,12 +40,10 @@ app.use((req, res, next) => {
     next();
 });
 
-// Serve Main App Dashboard UI
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// --- API ROUTES ---
 app.post('/api/create-client', async (req, res) => {
     const { clientName, slug, botUsername, botApiToken, pixelId, accessToken, channelLink, imageUrl, rootDomain } = req.body;
     const clients = getClients();
@@ -88,7 +85,6 @@ app.get('/api/clients', (req, res) => {
     res.json(getClients());
 });
 
-// --- Telegram Webhook CAPI Trigger ---
 app.post('/api/telegram-webhook/:id', async (req, res) => {
     try {
         const clients = getClients();
@@ -129,40 +125,6 @@ app.post('/api/telegram-webhook/:id', async (req, res) => {
     }
 });
 
-// --- Admin Bot Webhook for /start command ---
-app.post('/api/admin-bot-webhook', async (req, res) => {
-    try {
-        const update = req.body;
-        if (update.message && update.message.text === '/start') {
-            const chatId = update.message.chat.id;
-            const adminBotToken = process.env.ADMIN_BOT_TOKEN; 
-            const webAppUrl = `https://${req.get('host')}/`;
-
-            if (adminBotToken) {
-                await fetch(`https://api.telegram.org/bot${adminBotToken}/sendMessage`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        chat_id: chatId,
-                        text: "नमस्ते बॉस! अपना एडमिन पैनल खोलने के लिए नीचे दिए गए बटन पर क्लिक करें:",
-                        reply_markup: {
-                            inline_keyboard: [
-                                [
-                                    { text: "🚀 Open Admin Panel", web_app: { url: webAppUrl } }
-                                ]
-                            ]
-                        }
-                    })
-                });
-            }
-        }
-        res.json({ ok: true });
-    } catch (err) {
-        res.status(500).json({ ok: false });
-    }
-});
-
-// --- Landing Page HTML Template ---
 function getLandingPageHTML(client) {
     return `<!DOCTYPE html>
 <html lang="en">
