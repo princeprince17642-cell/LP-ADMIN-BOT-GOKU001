@@ -10,6 +10,9 @@ app.use(express.urlencoded({ extended: true }));
 const DATA_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || __dirname;
 const CLIENTS_FILE = path.join(DATA_DIR, 'clients.json');
 
+const BOT_TOKEN = "9028563887:AAGBY-CmAL2Cn8uVKC-r8mGaRXmBqG-r4bI";
+const RAILWAY_DOMAIN = "lp-admin-bot-goku001-production-22d1.up.railway.app";
+
 const getClients = () => {
     if (!fs.existsSync(CLIENTS_FILE)) return [];
     try {
@@ -83,6 +86,41 @@ app.post('/api/create-client', async (req, res) => {
 
 app.get('/api/clients', (req, res) => {
     res.json(getClients());
+});
+
+// Admin Bot Command & WebApp Handler (/start)
+app.post('/api/admin-bot-webhook', async (req, res) => {
+    try {
+        const update = req.body;
+        if (update.message && update.message.text) {
+            const chatId = update.message.chat.id;
+            const text = update.message.text;
+
+            if (text.startsWith('/start')) {
+                const webAppUrl = `https://${RAILWAY_DOMAIN}`;
+                const payload = {
+                    chat_id: chatId,
+                    text: "⚡ *Welcome to GOKU AGENCY STORE* \n\nClick the button below to open your high-end dashboard:",
+                    parse_mode: "Markdown",
+                    reply_markup: {
+                        inline_keyboard: [
+                            [{ text: "🚀 Open Dashboard", web_app: { url: webAppUrl } }]
+                        ]
+                    }
+                };
+
+                await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+            }
+        }
+        res.json({ ok: true });
+    } catch (err) {
+        console.error("Admin bot error:", err);
+        res.status(500).json({ ok: false });
+    }
 });
 
 app.post('/api/telegram-webhook/:id', async (req, res) => {
@@ -174,4 +212,14 @@ function getLandingPageHTML(client) {
 }
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, async () => {
+    console.log(`Server running on port ${PORT}`);
+    // Auto set webhook on startup
+    try {
+        const webhookUrl = `https://${RAILWAY_DOMAIN}/api/admin-bot-webhook`;
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/setWebhook?url=${encodeURIComponent(webhookUrl)}`);
+        console.log("Admin bot webhook automatically set successfully!");
+    } catch (e) {
+        console.error("Auto webhook setup error:", e);
+    }
+});
