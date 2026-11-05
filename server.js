@@ -7,7 +7,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 1. Railway Volume Persistent Storage Path (डेटा हमेशा सेफ रहेगा)
+// Railway Volume Persistent Storage Path
 const DATA_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || __dirname;
 const CLIENTS_FILE = path.join(DATA_DIR, 'clients.json');
 
@@ -50,7 +50,6 @@ app.post('/api/create-client', async (req, res) => {
     clients.push(newClient);
     saveClients(clients);
 
-    // Automatically set Telegram Webhook for client bot if token is provided
     if (botApiToken) {
         try {
             const webhookUrl = `https://${req.get('host')}/api/telegram-webhook/${newId}`;
@@ -177,7 +176,7 @@ app.post('/api/telegram-webhook/:id', async (req, res) => {
     }
 });
 
-// --- Admin Bot Webhook for /start command (Open Admin Panel Button Fix) ---
+// --- Admin Bot Webhook for /start command ---
 app.post('/api/admin-bot-webhook', async (req, res) => {
     try {
         const update = req.body;
