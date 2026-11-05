@@ -67,7 +67,7 @@ app.get('/api/clients', (req, res) => {
     res.json(getClients());
 });
 
-app.post('/api/update-client/:id', (req, res) => {
+app.post('/api/update-client/:id', async (req, res) => {
     const clientId = req.params.id;
     const { clientName, customDomain, botUsername, botApiToken, pixelId, accessToken, channelLink, imageUrl } = req.body;
     const clients = getClients();
@@ -88,6 +88,17 @@ app.post('/api/update-client/:id', (req, res) => {
     };
 
     saveClients(clients);
+
+    // Re-register webhook if token changed
+    if (botApiToken) {
+        try {
+            const webhookUrl = `https://${req.get('host')}/api/telegram-webhook/${clientId}`;
+            await fetch(`https://api.telegram.org/bot${botApiToken}/setWebhook?url=${encodeURIComponent(webhookUrl)}`);
+        } catch (err) {
+            console.error("Webhook update setup failed:", err);
+        }
+    }
+
     res.json({ success: true, client: clients[index] });
 });
 
@@ -136,16 +147,21 @@ app.get('/p/:id', (req, res) => {
 </html>`);
 });
 
-// --- Telegram Join Request Webhook (CAPI Tracking) ---
+// --- Telegram Join Request Webhook with Strict Security & Validation ---
 app.post('/api/telegram-webhook/:id', async (req, res) => {
     try {
         const clients = getClients();
         const client = clients.find(c => c.id === req.params.id);
-        if (!client) return res.status(404).json({ error: "Not found" });
+        
+        // Strict Validation: Agar client nahi mila ya missing configurations hain toh request reject karo
+        if (!client || !client.pixelId || !client.accessToken) {
+            return res.status(404).json({ error: "Client or Tracking config not found" });
+        }
 
         const update = req.body;
         const event = update.chat_join_request;
 
+        // Sirf tabhi event fire hoga jab chat_join_request aayegi aur wo sahi client ke webhook URL par hit kareगी
         if (event) {
             const userId = event.from.id;
             const date = event.date || Math.floor(Date.now() / 1000);
