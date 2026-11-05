@@ -24,27 +24,46 @@ const saveClients = (clients) => {
     fs.writeFileSync(CLIENTS_FILE, JSON.stringify(clients, null, 2));
 };
 
-// Serve Dashboard UI
+// --- Subdomain & Landing Page Handler (Wildcard logic) ---
+app.use((req, res, next) => {
+    const host = req.headers.host || '';
+    const parts = host.split('.');
+    
+    if (parts.length > 2 && !host.includes('railway.app') && !host.includes('localhost')) {
+        const slug = parts[0];
+        const clients = getClients();
+        const client = clients.find(c => c.slug === slug);
+
+        if (client && req.path === '/') {
+            return res.send(getLandingPageHTML(client));
+        }
+    }
+    next();
+});
+
+// Serve Main App Dashboard UI
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// --- API ROUTES: Create & Manage Clients ---
+// --- API ROUTES ---
 app.post('/api/create-client', async (req, res) => {
-    const { clientName, customDomain, botUsername, botApiToken, pixelId, accessToken, channelLink, imageUrl } = req.body;
+    const { clientName, slug, botUsername, botApiToken, pixelId, accessToken, channelLink, imageUrl, rootDomain } = req.body;
     const clients = getClients();
+    
+    const cleanSlug = (slug || 'page').toLowerCase().replace(/[^a-z0-9]/g, '');
     const newId = 'client_' + Date.now();
     
     const newClient = {
         id: newId,
-        clientName: clientName || 'Landing Page',
-        customDomain: customDomain || '',
+        slug: cleanSlug,
+        clientName: clientName || 'GOKU Store',
         botUsername: botUsername || '',
         botApiToken: botApiToken || '',
         pixelId: pixelId || '',
         accessToken: accessToken || '',
         channelLink: channelLink || '',
-        imageUrl: imageUrl || 'https://via.placeholder.com/150'
+        imageUrl: imageUrl || 'https://i.imgur.com/7k123ab.png'
     };
 
     clients.push(newClient);
@@ -59,7 +78,9 @@ app.post('/api/create-client', async (req, res) => {
         }
     }
 
-    const landingPageUrl = customDomain ? `https://${customDomain}/p/${newId}` : `https://${req.get('host')}/p/${newId}`;
+    const baseDomain = rootDomain || req.get('host');
+    const landingPageUrl = `https://${cleanSlug}.${baseDomain}`;
+    
     res.json({ success: true, landingPageUrl, client: newClient });
 });
 
@@ -67,93 +88,12 @@ app.get('/api/clients', (req, res) => {
     res.json(getClients());
 });
 
-app.post('/api/update-client/:id', async (req, res) => {
-    const clientId = req.params.id;
-    const { clientName, customDomain, botUsername, botApiToken, pixelId, accessToken, channelLink, imageUrl } = req.body;
-    const clients = getClients();
-    const index = clients.findIndex(c => c.id === clientId);
-
-    if (index === -1) return res.status(404).json({ success: false, message: "Not found" });
-
-    clients[index] = {
-        ...clients[index],
-        clientName: clientName || clients[index].clientName,
-        customDomain: customDomain !== undefined ? customDomain : clients[index].customDomain,
-        botUsername: botUsername || clients[index].botUsername,
-        botApiToken: botApiToken || clients[index].botApiToken,
-        pixelId: pixelId || clients[index].pixelId,
-        accessToken: accessToken || clients[index].accessToken,
-        channelLink: channelLink || clients[index].channelLink,
-        imageUrl: imageUrl || clients[index].imageUrl
-    };
-
-    saveClients(clients);
-
-    // Re-register webhook if token changed
-    if (botApiToken) {
-        try {
-            const webhookUrl = `https://${req.get('host')}/api/telegram-webhook/${clientId}`;
-            await fetch(`https://api.telegram.org/bot${botApiToken}/setWebhook?url=${encodeURIComponent(webhookUrl)}`);
-        } catch (err) {
-            console.error("Webhook update setup failed:", err);
-        }
-    }
-
-    res.json({ success: true, client: clients[index] });
-});
-
-// --- Dynamic Landing Page Route ---
-app.get('/p/:id', (req, res) => {
-    const clients = getClients();
-    const client = clients.find(c => c.id === req.params.id);
-    if (!client) return res.status(404).send("Landing page not found.");
-
-    res.send(`<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${client.clientName} - Exclusive Access</title>
-    <script>
-      !function(f,b,e,v,n,t,s)
-      {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-      n.queue=[];t=b.createElement(e);t.async=!0;
-      t.src=v;s=b.getElementsByTagName(e)[0];
-      s.parentNode.insertBefore(t,s)}(window, document,'script',
-      'https://connect.facebook.net/en_US/fbevents.js');
-      fbq('init', '${client.pixelId}');
-      fbq('track', 'PageView');
-    </script>
-    <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${client.pixelId}&ev=PageView&noscript=1"/></noscript>
-    <style>
-        body { font-family: Arial, sans-serif; background: #0f172a; color: #fff; text-align: center; padding: 50px 20px; }
-        .card { max-width: 400px; margin: 0 auto; background: #1e293b; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
-        img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-bottom: 20px; border: 2px solid #3b82f6; }
-        h1 { font-size: 24px; margin-bottom: 10px; }
-        p { color: #94a3b8; font-size: 14px; margin-bottom: 25px; }
-        .btn { display: block; background: #2563eb; color: white; padding: 12px; text-decoration: none; border-radius: 8px; font-weight: bold; }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <img src="${client.imageUrl}" alt="Channel">
-        <h1>${client.clientName}</h1>
-        <p>Join our exclusive Telegram channel to get instant updates.</p>
-        <a href="${client.channelLink}" class="btn" target="_blank" onclick="fbq('track', 'Lead');">Join Telegram Channel</a>
-    </div>
-</body>
-</html>`);
-});
-
-// --- Telegram Join Request Webhook with Strict Security & Validation ---
+// --- Telegram Webhook CAPI Trigger ---
 app.post('/api/telegram-webhook/:id', async (req, res) => {
     try {
         const clients = getClients();
         const client = clients.find(c => c.id === req.params.id);
         
-        // Strict Validation: Agar client nahi mila ya missing configurations hain toh request reject karo
         if (!client || !client.pixelId || !client.accessToken) {
             return res.status(404).json({ error: "Client or Tracking config not found" });
         }
@@ -161,7 +101,6 @@ app.post('/api/telegram-webhook/:id', async (req, res) => {
         const update = req.body;
         const event = update.chat_join_request;
 
-        // Sirf tabhi event fire hoga jab chat_join_request aayegi aur wo sahi client ke webhook URL par hit kareगी
         if (event) {
             const userId = event.from.id;
             const date = event.date || Math.floor(Date.now() / 1000);
@@ -222,6 +161,55 @@ app.post('/api/admin-bot-webhook', async (req, res) => {
         res.status(500).json({ ok: false });
     }
 });
+
+// --- Landing Page HTML Template ---
+function getLandingPageHTML(client) {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${client.clientName} - Exclusive Access</title>
+    <script>
+      !function(f,b,e,v,n,t,s)
+      {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+      n.queue=[];t=b.createElement(e);t.async=!0;
+      t.src=v;s=b.getElementsByTagName(e)[0];
+      s.parentNode.insertBefore(t,s)}(window, document,'script',
+      'https://connect.facebook.net/en_US/fbevents.js');
+      fbq('init', '${client.pixelId}');
+      fbq('track', 'PageView');
+    </script>
+    <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${client.pixelId}&ev=PageView&noscript=1"/></noscript>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #0b0f19; color: #fff; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .card { background: #131b2e; width: 100%; max-width: 420px; padding: 35px 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); border: 1px solid #1e293b; text-align: center; }
+        .avatar-container { position: relative; width: 90px; height: 90px; margin: 0 auto 20px; }
+        img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 3px solid #6366f1; box-shadow: 0 0 15px rgba(99, 102, 241, 0.4); }
+        h1 { font-size: 22px; font-weight: 700; margin-bottom: 8px; color: #f8fafc; }
+        p { color: #94a3b8; font-size: 13px; margin-bottom: 30px; line-height: 1.5; }
+        .btn { display: flex; justify-content: center; align-items: center; gap: 10px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; padding: 14px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 15px; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4); }
+        .footer-note { margin-top: 20px; font-size: 11px; color: #64748b; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="avatar-container">
+            <img src="${client.imageUrl}" alt="Logo">
+        </div>
+        <h1>${client.clientName}</h1>
+        <p>Join our secure VIP Telegram channel to unlock premium content & updates instantly.</p>
+        <a href="${client.channelLink}" class="btn" target="_blank" onclick="fbq('track', 'Lead');">
+            <span>Join Telegram Channel</span>
+        </a>
+        <div class="footer-note">🔒 Verified Secure Access Link</div>
+    </div>
+</body>
+</html>`;
+}
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

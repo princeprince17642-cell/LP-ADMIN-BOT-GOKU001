@@ -1,161 +1,214 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jack Digital Agency Dashboard</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <title>GOKU AGENCY STORE</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #0f172a; color: #fff; margin: 0; padding: 20px; }
-        .container { max-width: 500px; margin: 0 auto; }
-        h1 { font-size: 20px; text-align: center; margin-bottom: 20px; color: #38bdf8; }
-        .card { background: #1e293b; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
-        label { display: block; font-size: 13px; color: #94a3b8; margin-bottom: 5px; margin-top: 10px; }
-        input, textarea { width: 100%; padding: 10px; background: #0f172a; border: 1px solid #334155; color: #fff; border-radius: 6px; box-sizing: border-box; }
-        button { width: 100%; background: #2563eb; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: bold; margin-top: 15px; cursor: pointer; }
-        button:hover { background: #1d4ed8; }
-        .client-item { background: #334155; padding: 12px; border-radius: 8px; margin-top: 10px; font-size: 14px; }
-        .client-item a { color: #38bdf8; word-break: break-all; text-decoration: none; }
-        .nav-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-        .nav-tab { flex: 1; padding: 10px; background: #1e293b; border: none; color: #fff; border-radius: 6px; cursor: pointer; font-weight: bold; }
-        .nav-tab.active { background: #2563eb; }
-        .section { display: none; }
-        .section.active { display: block; }
-        .copy-btn { background: #10b981; margin-top: 8px; padding: 8px; font-size: 12px; }
-        .copy-btn:hover { background: #059669; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #070913; color: #fff; min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
+
+        /* --- SPLASH / LOADING SCREEN --- */
+        #splash {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #070913;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.5s ease;
+        }
+        .spinner-logo {
+            width: 100px; height: 100px;
+            border-radius: 50%;
+            border: 4px solid rgba(59, 130, 246, 0.2);
+            border-top: 4px solid #3b82f6;
+            animation: spin 1s linear infinite, pulseGlow 2s ease-in-out infinite;
+            object-fit: cover;
+        }
+        .splash-title {
+            margin-top: 25px;
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            background: linear-gradient(90deg, #facc15, #ffffff, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: fadeIn 1.2s ease-in-out;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 15px rgba(59,130,246,0.3); } 50% { box-shadow: 0 0 35px rgba(59,130,246,0.7); } }
+
+        /* --- MAIN APP CONTAINER --- */
+        #app { display: none; flex-direction: column; min-height: 100vh; padding-bottom: 80px; }
+
+        /* --- HEADER --- */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background: #0b1120;
+            border-bottom: 1px solid #1e293b;
+        }
+        .brand-box {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .brand-logo {
+            width: 38px; height: 38px;
+            border-radius: 50%;
+            border: 2px solid #3b82f6;
+            object-fit: cover;
+            box-shadow: 0 0 10px rgba(59,130,246,0.5);
+        }
+        .brand-text {
+            font-size: 16px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+        }
+        .text-goku { color: #facc15; }
+        .text-agency { color: #ffffff; }
+        .text-store { color: #3b82f6; }
+
+        .profile-btn {
+            background: #1e293b;
+            border: 1px solid #334155;
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .profile-btn:active { transform: scale(0.92); }
+
+        /* --- TABS CONTENT --- */
+        .tab-content { display: none; padding: 25px 20px; flex: 1; text-align: center; }
+        .tab-content.active { display: block; }
+        h2 { font-size: 20px; margin-bottom: 10px; color: #f8fafc; }
+        p { color: #94a3b8; font-size: 14px; }
+
+        /* --- BOTTOM NAVIGATION --- */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0; left: 0; width: 100%;
+            background: #0b1120;
+            border-top: 1px solid #1e293b;
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            z-index: 1000;
+        }
+        .nav-item {
+            background: none; border: none;
+            color: #64748b;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .nav-item svg { width: 22px; height: 22px; fill: currentColor; }
+        .nav-item.active { color: #3b82f6; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🚀 Jack Digital Agency Dashboard</h1>
-        
-        <!-- Navigation Tabs -->
-        <div class="nav-tabs">
-            <button class="nav-tab active" onclick="switchTab('create')">Create New Landing Page</button>
-            <button class="nav-tab" onclick="switchTab('pages')">Your Pages</button>
-        </div>
 
-        <!-- Create New Landing Page Section -->
-        <div id="createSection" class="section active">
-            <div class="card">
-                <h3>Create New Landing Page & Bot Tracking</h3>
-                <form id="createForm">
-                    <label>Client Name</label>
-                    <input type="text" id="clientName" required placeholder="e.g. Cybox">
-                    
-                    <label>Custom Domain (Optional - e.g. clientdomain.com)</label>
-                    <input type="text" id="customDomain" placeholder="Leave blank for default Railway domain">
+    <!-- Splash Screen -->
+    <div id="splash">
+        <img src="https://i.imgur.com/7k123ab.png" class="spinner-logo" alt="GOKU Logo" id="splashImg">
+        <div class="splash-title">GOKU AGENCY STORE</div>
+    </div>
 
-                    <label>Telegram Bot Username</label>
-                    <input type="text" id="botUsername" required placeholder="@Syvoxlandingpagebot">
-
-                    <label>Telegram Bot API Token (For Auto Tracking)</label>
-                    <input type="text" id="botApiToken" required placeholder="123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ">
-                    
-                    <label>Meta Pixel ID</label>
-                    <input type="text" id="pixelId" required placeholder="1115936117748992">
-                    
-                    <label>Meta Access Token (CAPI)</label>
-                    <textarea id="accessToken" required placeholder="EABBqGSM..."></textarea>
-                    
-                    <label>Telegram Channel Invite Link</label>
-                    <input type="text" id="channelLink" required placeholder="https://t.me/+...">
-                    
-                    <label>Channel Image URL</label>
-                    <input type="text" id="imageUrl" placeholder="https://... (Optional)">
-                    
-                    <button type="submit">Create Landing Page & Connect Bot</button>
-                </form>
-                
-                <div id="resultBox" style="display:none; margin-top: 15px;">
-                    <label style="color: #4ade80;">Success! Landing Page Link:</label>
-                    <input type="text" id="resultLink" readonly style="background: #0f172a; color: #38bdf8; font-weight: bold;">
-                    <button type="button" class="copy-btn" onclick="copyGeneratedLink()">📋 Copy Link</button>
+    <!-- Main App UI -->
+    <div id="app">
+        <!-- Header -->
+        <header>
+            <div class="brand-box">
+                <img src="https://i.imgur.com/7k123ab.png" class="brand-logo" alt="Logo">
+                <div class="brand-text">
+                    <span class="text-goku">GOKU</span> <span class="text-agency">AGENCY</span> <span class="text-store">STORE</span>
                 </div>
             </div>
+            <div class="profile-btn" onclick="switchTab('account')">
+                👤
+            </div>
+        </header>
+
+        <!-- Tab 1: Home -->
+        <div id="tab-home" class="tab-content active">
+            <h2>Welcome to Dashboard</h2>
+            <p>Home screen is ready. More features coming soon!</p>
         </div>
 
-        <!-- Your Pages / Manage Section -->
-        <div id="pagesSection" class="section">
-            <div class="card">
-                <h3>Your Created Landing Pages</h3>
-                <div id="clientsList">Loading...</div>
-            </div>
+        <!-- Tab 2: Landing Page -->
+        <div id="tab-landing" class="tab-content">
+            <h2>Landing Pages</h2>
+            <p>Landing page builder modules will appear here.</p>
         </div>
+
+        <!-- Tab 3: Orders -->
+        <div id="tab-orders" class="tab-content">
+            <h2>Your Orders</h2>
+            <p>Track your active pages and order statuses here.</p>
+        </div>
+
+        <!-- Tab 4: Account -->
+        <div id="tab-account" class="tab-content">
+            <h2>Account Details</h2>
+            <p>Manage your profile, balance, and deposit history here.</p>
+        </div>
+
+        <!-- Bottom Navigation Bar -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" onclick="switchTab('home')" id="nav-home">
+                <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+                Home
+            </button>
+            <button class="nav-item" onclick="switchTab('landing')" id="nav-landing">
+                <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+                Landing Page
+            </button>
+            <button class="nav-item" onclick="switchTab('orders')" id="nav-orders">
+                <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/></svg>
+                Orders
+            </button>
+            <button class="nav-item" onclick="switchTab('account')" id="nav-account">
+                <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                Account
+            </button>
+        </nav>
     </div>
 
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
-
-        function switchTab(tab) {
-            document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-            if(tab === 'create') {
-                document.querySelectorAll('.nav-tab')[0].classList.add('active');
-                document.getElementById('createSection').classList.add('active');
-            } else {
-                document.querySelectorAll('.nav-tab')[1].classList.add('active');
-                document.getElementById('pagesSection').classList.add('active');
-                loadClients();
-            }
-        }
-
-        async function loadClients() {
-            const res = await fetch('/api/clients');
-            const clients = await res.json();
-            const listDiv = document.getElementById('clientsList');
-            if(clients.length === 0) {
-                listDiv.innerHTML = '<p style="color: #94a3b8; font-size: 13px;">No landing pages created yet.</p>';
-                return;
-            }
-            listDiv.innerHTML = clients.map(c => {
-                const pageUrl = c.customDomain ? `https://${c.customDomain}/p/${c.id}` : `${window.location.origin}/p/${c.id}`;
-                return `
-                    <div class="client-item">
-                        <strong>Client: ${c.clientName}</strong><br>
-                        <span>Bot: ${c.botUsername}</span><br>
-                        <a href="${pageUrl}" target="_blank">${pageUrl}</a><br>
-                        <button class="copy-btn" onclick="navigator.clipboard.writeText('${pageUrl}'); alert('Link copied!');">📋 Copy Link</button>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function copyGeneratedLink() {
-            const linkInput = document.getElementById('resultLink');
-            linkInput.select();
-            navigator.clipboard.writeText(linkInput.value);
-            alert("Link copied to clipboard!");
-        }
-
-        document.getElementById('createForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const data = {
-                clientName: document.getElementById('clientName').value,
-                customDomain: document.getElementById('customDomain').value,
-                botUsername: document.getElementById('botUsername').value,
-                botApiToken: document.getElementById('botApiToken').value,
-                pixelId: document.getElementById('pixelId').value,
-                accessToken: document.getElementById('accessToken').value,
-                channelLink: document.getElementById('channelLink').value,
-                imageUrl: document.getElementById('imageUrl').value
-            };
-
-            const res = await fetch('/api/create-client', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            const result = await res.json();
-            if(result.success) {
-                document.getElementById('resultLink').value = result.landingPageUrl;
-                document.getElementById('resultBox').style.display = 'block';
-                document.getElementById('createForm').reset();
-            } else {
-                alert("Error creating landing page");
-            }
+        // Splash screen timer
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                const splash = document.getElementById('splash');
+                splash.style.opacity = '0';
+                setTimeout(() => {
+                    splash.style.display = 'none';
+                    document.getElementById('app').style.display = 'flex';
+                }, 500);
+            }, 1800);
         });
+
+        // Tab Switching Logic
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+
+            document.getElementById('tab-' + tabName).classList.add('active');
+            const navBtn = document.getElementById('nav-' + tabName);
+            if (navBtn) navBtn.classList.add('active');
+        }
     </script>
 </body>
 </html>
