@@ -7,7 +7,9 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-const CLIENTS_FILE = path.join(__dirname, 'clients.json');
+// 1. Railway Volume Persistent Storage Path (डेटा हमेशा सेफ रहेगा)
+const DATA_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || __dirname;
+const CLIENTS_FILE = path.join(DATA_DIR, 'clients.json');
 
 const getClients = () => {
     if (!fs.existsSync(CLIENTS_FILE)) return [];
@@ -27,7 +29,7 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// --- API ROUTES ---
+// --- API ROUTES: Create & Manage Clients ---
 app.post('/api/create-client', async (req, res) => {
     const { clientName, customDomain, botUsername, botApiToken, pixelId, accessToken, channelLink, imageUrl } = req.body;
     const clients = getClients();
@@ -48,7 +50,7 @@ app.post('/api/create-client', async (req, res) => {
     clients.push(newClient);
     saveClients(clients);
 
-    // Automatically set Telegram Webhook for this bot if token is provided
+    // Automatically set Telegram Webhook for client bot if token is provided
     if (botApiToken) {
         try {
             const webhookUrl = `https://${req.get('host')}/api/telegram-webhook/${newId}`;
@@ -90,6 +92,7 @@ app.post('/api/update-client/:id', (req, res) => {
     res.json({ success: true, client: clients[index] });
 });
 
+// --- Dynamic Landing Page Route ---
 app.get('/p/:id', (req, res) => {
     const clients = getClients();
     const client = clients.find(c => c.id === req.params.id);
@@ -136,6 +139,7 @@ app.get('/p/:id', (req, res) => {
     `);
 });
 
+// --- Telegram Join Request Webhook (CAPI Tracking) ---
 app.post('/api/telegram-webhook/:id', async (req, res) => {
     try {
         const clients = getClients();
@@ -166,6 +170,37 @@ app.post('/api/telegram-webhook/:id', async (req, res) => {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
             });
+        }
+        res.json({ ok: true });
+    } catch (err) {
+        res.status(500).json({ ok: false });
+    }
+});
+
+// --- Admin Bot Webhook for /start command (Open Admin Panel Button Fix) ---
+app.post('/api/admin-bot-webhook', async (req, res) => {
+    try {
+        const update = req.body;
+        if (update.message && update.message.text === '/start') {
+            const chatId = update.message.chat.id;
+            const adminBotToken = process.env.ADMIN_BOT_TOKEN; 
+            const webAppUrl = `https://${req.get('host')}/`;
+
+            if (adminBotToken) {
+                await fetch(`https://api.telegram.org/bot${adminBotToken}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: chatId,
+                        text: "नमस्ते बॉस! अपना एडमिन पैनल खोलने के लिए नीचे दिए गए बटन पर क्लिक करें:",
+                        reply_markup: {
+                            inline_keyboard: [[
+                                { text: "🚀 Open Admin Panel", web_app: { url: webAppUrl } }
+                            ]}
+                        }
+                    })
+                });
+            }
         }
         res.json({ ok: true });
     } catch (err) {
