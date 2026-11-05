@@ -7,7 +7,6 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Railway Volume Persistent Storage Path
 const DATA_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || __dirname;
 const CLIENTS_FILE = path.join(DATA_DIR, 'clients.json');
 
@@ -24,12 +23,10 @@ const saveClients = (clients) => {
     fs.writeFileSync(CLIENTS_FILE, JSON.stringify(clients, null, 2));
 };
 
-// Serve Dashboard UI
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-// --- API ROUTES: Create & Manage Clients ---
 app.post('/api/create-client', async (req, res) => {
     const { clientName, customDomain, botUsername, botApiToken, pixelId, accessToken, channelLink, imageUrl } = req.body;
     const clients = getClients();
@@ -91,54 +88,50 @@ app.post('/api/update-client/:id', (req, res) => {
     res.json({ success: true, client: clients[index] });
 });
 
-// --- Dynamic Landing Page Route ---
 app.get('/p/:id', (req, res) => {
     const clients = getClients();
     const client = clients.find(c => c.id === req.params.id);
     if (!client) return res.status(404).send("Landing page not found.");
 
-    res.send(`
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>${client.clientName} - Exclusive Access</title>
-        <script>
-          !function(f,b,e,v,n,t,s)
-          {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-          n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-          if(!f._byq)f._byq=n;n.push=true;n.loaded=!0;n.version='2.0';
-          n.queue=[];t=b.createElement(e);t.async=!0;
-          t.src=v;s=b.getElementsByTagName(e)[0];
-          s.parentNode.insertBefore(t,s)}(window, document,'script',
-          'https://connect.facebook.net/en_US/fbevents.js');
-          fbq('init', '${client.pixelId}');
-          fbq('track', 'PageView');
-        </script>
-        <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${client.pixelId}&ev=PageView&noscript=1"/></noscript>
-        <style>
-            body { font-family: Arial, sans-serif; background: #0f172a; color: #fff; text-align: center; padding: 50px 20px; }
-            .card { max-width: 400px; margin: 0 auto; background: #1e293b; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
-            img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-bottom: 20px; border: 2px solid #3b82f6; }
-            h1 { font-size: 24px; margin-bottom: 10px; }
-            p { color: #94a3b8; font-size: 14px; margin-bottom: 25px; }
-            .btn { display: block; background: #2563eb; color: white; padding: 12px; text-decoration: none; border-radius: 8px; font-weight: bold; }
-        </style>
-    </head>
-    <body>
-        <div class="card">
-            <img src="${client.imageUrl}" alt="Channel">
-            <h1>${client.clientName}</h1>
-            <p>Join our exclusive Telegram channel to get instant updates.</p>
-            <a href="${client.channelLink}" class="btn" target="_blank" onclick="fbq('track', 'Lead');">Join Telegram Channel</a>
-        </div>
-    </body>
-    </html>
-    `);
+    res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${client.clientName} - Exclusive Access</title>
+    <script>
+      !function(f,b,e,v,n,t,s)
+      {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+      n.queue=[];t=b.createElement(e);t.async=!0;
+      t.src=v;s=b.getElementsByTagName(e)[0];
+      s.parentNode.insertBefore(t,s)}(window, document,'script',
+      'https://connect.facebook.net/en_US/fbevents.js');
+      fbq('init', '${client.pixelId}');
+      fbq('track', 'PageView');
+    </script>
+    <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=${client.pixelId}&ev=PageView&noscript=1"/></noscript>
+    <style>
+        body { font-family: Arial, sans-serif; background: #0f172a; color: #fff; text-align: center; padding: 50px 20px; }
+        .card { max-width: 400px; margin: 0 auto; background: #1e293b; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+        img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-bottom: 20px; border: 2px solid #3b82f6; }
+        h1 { font-size: 24px; margin-bottom: 10px; }
+        p { color: #94a3b8; font-size: 14px; margin-bottom: 25px; }
+        .btn { display: block; background: #2563eb; color: white; padding: 12px; text-decoration: none; border-radius: 8px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <img src="${client.imageUrl}" alt="Channel">
+        <h1>${client.clientName}</h1>
+        <p>Join our exclusive Telegram channel to get instant updates.</p>
+        <a href="${client.channelLink}" class="btn" target="_blank" onclick="fbq('track', 'Lead');">Join Telegram Channel</a>
+    </div>
+</body>
+</html>`);
 });
 
-// --- Telegram Join Request Webhook (CAPI Tracking) ---
 app.post('/api/telegram-webhook/:id', async (req, res) => {
     try {
         const clients = getClients();
@@ -176,7 +169,6 @@ app.post('/api/telegram-webhook/:id', async (req, res) => {
     }
 });
 
-// --- Admin Bot Webhook for /start command ---
 app.post('/api/admin-bot-webhook', async (req, res) => {
     try {
         const update = req.body;
