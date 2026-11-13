@@ -55,46 +55,57 @@ main{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:6
 .card h2{font-size:20px;margin-bottom:6px}
 .card p{font-size:14px;color:var(--muted)}
 
-/* Account: branding + profile */
-.acc-brand{text-align:center;padding:6px 0 18px}
-.acc-brand-title{font-size:26px;font-weight:800;letter-spacing:.2em;color:#fff;text-shadow:0 0 8px var(--blue),0 0 26px rgba(59,130,246,.6)}
-.acc-brand-sub{margin-top:6px;font-size:11px;letter-spacing:.28em;color:var(--muted);font-weight:600}
+/* Account: branding (compact) */
+.acc-brand{text-align:center;padding:0 0 12px}
+.acc-brand-title{font-size:20px;font-weight:800;letter-spacing:.2em;color:#fff;text-shadow:0 0 8px var(--blue),0 0 22px rgba(59,130,246,.55)}
+.acc-brand-sub{margin-top:3px;font-size:10px;letter-spacing:.28em;color:var(--muted);font-weight:600}
 
-.profile-card{position:relative;display:flex;align-items:center;gap:16px;padding:20px;border-radius:22px;background:linear-gradient(160deg,rgba(59,130,246,.10),rgba(11,17,32,.96) 55%);border:1px solid rgba(250,204,21,.28);box-shadow:var(--glow-y),inset 0 0 0 1px rgba(255,255,255,.02)}
-.avatar{position:relative;flex:0 0 auto;width:78px;height:78px;border-radius:50%;padding:3px;background:conic-gradient(from 160deg,var(--blue),var(--yellow),var(--blue));box-shadow:0 0 22px rgba(59,130,246,.45)}
+/* Account: compact profile card */
+.profile-card{position:relative;display:flex;align-items:center;gap:14px;padding:12px 14px;border-radius:20px;background:linear-gradient(160deg,rgba(59,130,246,.10),rgba(11,17,32,.96) 55%);border:1px solid rgba(250,204,21,.28);box-shadow:var(--glow-y),inset 0 0 0 1px rgba(255,255,255,.02)}
+.avatar{position:relative;flex:0 0 auto;width:62px;height:62px;border-radius:50%;padding:2.5px;background:conic-gradient(from 160deg,var(--blue),var(--yellow),var(--blue));box-shadow:0 0 18px rgba(59,130,246,.4)}
 .avatar-inner{position:relative;width:100%;height:100%;border-radius:50%;overflow:hidden;background:var(--card);display:grid;place-items:center}
-.avatar-inner svg{width:62%;height:62%;stroke:var(--blue);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.avatar-inner svg{width:60%;height:60%;stroke:var(--blue);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .avatar-inner img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
 .avatar-inner img.show{display:block}
 .p-info{min-width:0;flex:1}
-.p-name{font-size:19px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.p-user{margin-top:3px;font-size:14px;color:var(--blue);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.p-id{display:inline-flex;align-items:center;gap:8px;margin-top:10px;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:rgba(59,130,246,.08);font-size:12px;color:var(--muted)}
+.p-name{font-size:17px;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
+.p-user{margin-top:1px;font-size:12px;color:var(--blue);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p-id{display:inline-flex;align-items:center;gap:6px;margin-top:6px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:rgba(59,130,246,.08);font-size:11px;color:var(--muted)}
+.p-id svg{width:13px;height:13px;stroke:var(--yellow);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .p-id b{color:var(--text);font-weight:700;letter-spacing:.04em}
-.badge-admin{position:absolute;top:14px;right:14px;padding:3px 10px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.12em;color:#1a1400;background:var(--yellow);box-shadow:0 0 14px rgba(250,204,21,.5)}
+.badge-admin{position:absolute;top:10px;right:12px;padding:2px 9px;border-radius:999px;font-size:9px;font-weight:800;letter-spacing:.12em;color:#1a1400;background:var(--yellow);box-shadow:0 0 12px rgba(250,204,21,.45)}
 .badge-admin[hidden]{display:none}
 
 .skeleton .p-name,.skeleton .p-user,.skeleton .p-id{color:transparent;background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.10),rgba(255,255,255,.04));background-size:200% 100%;animation:shimmer 1.4s linear infinite;border-radius:8px;border-color:transparent}
-.skeleton .p-id b{color:transparent}
+.skeleton .p-id b,.skeleton .p-id svg{color:transparent;stroke:transparent}
 @keyframes shimmer{to{background-position:-200% 0}}
 
 .acc-error{margin-top:14px;padding:14px 16px;border-radius:14px;border:1px solid rgba(248,113,113,.35);background:rgba(248,113,113,.08);color:#fca5a5;font-size:13px;line-height:1.5}
 .acc-error[hidden]{display:none}
 
 /* Account: balance card + deposit button */
-.balance-card{position:relative;margin-top:16px;padding:22px 20px;border-radius:22px;overflow:hidden;background:linear-gradient(150deg,rgba(250,204,21,.10),rgba(11,17,32,.97) 60%);border:1px solid rgba(250,204,21,.30);box-shadow:var(--glow-y),inset 0 0 0 1px rgba(255,255,255,.02)}
+.balance-card{position:relative;margin-top:14px;padding:20px;border-radius:22px;overflow:hidden;background:linear-gradient(150deg,rgba(250,204,21,.10),rgba(11,17,32,.97) 60%);border:1px solid rgba(250,204,21,.30);box-shadow:var(--glow-y),inset 0 0 0 1px rgba(255,255,255,.02)}
 .balance-card::after{content:"";position:absolute;right:-60px;top:-60px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(250,204,21,.16),transparent 70%);pointer-events:none}
 .bal-label{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.18em;color:var(--muted)}
 .bal-label svg{width:18px;height:18px;stroke:var(--yellow);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.bal-amount{display:flex;align-items:baseline;gap:6px;margin-top:12px;font-weight:800;color:#fff;text-shadow:0 0 18px rgba(250,204,21,.25)}
+.bal-amount{display:flex;align-items:baseline;gap:6px;margin-top:10px;font-weight:800;color:#fff;text-shadow:0 0 18px rgba(250,204,21,.25)}
 .bal-cur{font-size:26px;color:var(--yellow)}
 .bal-num{font-size:40px;letter-spacing:.01em;line-height:1.1;word-break:break-all}
-.bal-note{margin-top:10px;font-size:12px;color:var(--muted)}
+.bal-note{margin-top:8px;font-size:12px;color:var(--muted)}
 .skeleton-bal .bal-num{color:transparent;background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.10),rgba(255,255,255,.04));background-size:200% 100%;animation:shimmer 1.4s linear infinite;border-radius:10px}
 
 .deposit-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;margin-top:14px;padding:16px;border-radius:16px;font-size:15px;font-weight:800;letter-spacing:.2em;color:#1a1400;background:linear-gradient(135deg,#fde047,#facc15 55%,#eab308);box-shadow:0 8px 26px rgba(250,204,21,.28),inset 0 1px 0 rgba(255,255,255,.35);transition:transform .15s,box-shadow .2s}
 .deposit-btn svg{width:20px;height:20px;stroke:#1a1400;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .deposit-btn:active{transform:scale(.98);box-shadow:0 4px 16px rgba(250,204,21,.22)}
+
+/* Account: Deposit History + Transactions tiles */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.stat-tile{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:18px 10px;border-radius:20px;background:linear-gradient(160deg,rgba(59,130,246,.08),rgba(11,17,32,.97) 60%);border:1px solid var(--line);box-shadow:var(--glow-b),inset 0 0 0 1px rgba(255,255,255,.02)}
+.tile-icon{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(145deg,rgba(59,130,246,.30),rgba(59,130,246,.10));border:1px solid rgba(59,130,246,.45);box-shadow:0 0 16px rgba(59,130,246,.30)}
+.tile-icon svg{width:22px;height:22px;stroke:var(--blue);fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.tile-title{font-size:12px;font-weight:800;letter-spacing:.1em;color:#fff}
+.tile-count{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--yellow)}
+.skeleton-tile .tile-count{color:transparent;background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.10),rgba(255,255,255,.04));background-size:200% 100%;animation:shimmer 1.4s linear infinite;border-radius:6px}
 
 /* Floating bottom nav */
 nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:50;max-width:612px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);padding:6px;border-radius:24px;background:rgba(11,17,32,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--line);box-shadow:0 10px 34px rgba(0,0,0,.55),0 0 26px rgba(59,130,246,.16)}
@@ -107,8 +118,10 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
 
 @media (max-width:360px){
   .bal-num{font-size:34px}
-  .profile-card{padding:16px;gap:12px}
-  .avatar{width:68px;height:68px}
+  .profile-card{padding:10px 12px;gap:10px}
+  .avatar{width:54px;height:54px}
+  .p-name{font-size:15px}
+  .stat-tile{padding:16px 8px}
 }
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition-duration:.01s!important}}
 </style>
@@ -152,7 +165,10 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
       <div class="p-info">
         <div class="p-name" id="pName">Loading name</div>
         <div class="p-user" id="pUser">@loading</div>
-        <div class="p-id">User ID <b id="pId">0000000000</b></div>
+        <div class="p-id">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>
+          ID <b id="pId">0000000000</b>
+        </div>
       </div>
     </div>
 
@@ -172,6 +188,23 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
       DEPOSIT
     </button>
+
+    <div class="stat-grid">
+      <div class="stat-tile skeleton-tile" id="depTile">
+        <div class="tile-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>
+        </div>
+        <div class="tile-title">DEPOSIT HISTORY</div>
+        <div class="tile-count" id="depCount">0 RECORDS</div>
+      </div>
+      <div class="stat-tile skeleton-tile" id="txnTile">
+        <div class="tile-icon">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>
+        </div>
+        <div class="tile-title">TRANSACTIONS</div>
+        <div class="tile-count" id="txnCount">0 RECORDS</div>
+      </div>
+    </div>
 
     <div class="acc-error" id="accError" hidden></div>
   </section>
@@ -256,21 +289,34 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     });
   }
 
-  // Account: wallet balance (always fetched from the backend)
+  // Account: wallet balance + record counts (always fetched from the backend)
   var balanceCard = document.getElementById('balanceCard');
+  var depTile = document.getElementById('depTile');
+  var txnTile = document.getElementById('txnTile');
 
   function formatINR(n){
     return new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
   }
 
+  function recordsText(n){
+    return n + (n === 1 ? ' RECORD' : ' RECORDS');
+  }
+
   function loadWallet(){
     return api('/api/wallet').then(function(data){
-      document.getElementById('balNum').textContent = formatINR(data.wallet.balance);
-      balanceCard.classList.remove('skeleton-bal');
+      var w = data.wallet;
+      document.getElementById('balNum').textContent = formatINR(w.balance);
+      document.getElementById('depCount').textContent = recordsText(w.depositCount);
+      document.getElementById('txnCount').textContent = recordsText(w.transactionCount);
     }).catch(function(){
       document.getElementById('balNum').textContent = '--';
+      document.getElementById('depCount').textContent = '--';
+      document.getElementById('txnCount').textContent = '--';
+      showError('Could not load your wallet right now. Please try again in a moment.');
+    }).then(function(){
       balanceCard.classList.remove('skeleton-bal');
-      showError('Could not load your balance right now. Please try again in a moment.');
+      depTile.classList.remove('skeleton-tile');
+      txnTile.classList.remove('skeleton-tile');
     });
   }
 
@@ -279,7 +325,11 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
   function loadAccount(){
     if (!tg || !tg.initData) {
       document.getElementById('balNum').textContent = '--';
+      document.getElementById('depCount').textContent = '--';
+      document.getElementById('txnCount').textContent = '--';
       balanceCard.classList.remove('skeleton-bal');
+      depTile.classList.remove('skeleton-tile');
+      txnTile.classList.remove('skeleton-tile');
       showError('Please open GDX STORE from inside Telegram to see your account.');
       return;
     }
