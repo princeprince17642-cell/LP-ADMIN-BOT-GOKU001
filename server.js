@@ -10,7 +10,14 @@ app.use(express.urlencoded({ extended: true }));
 const DATA_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || __dirname;
 const CLIENTS_FILE = path.join(DATA_DIR, 'clients.json');
 
-const BOT_TOKEN = "9028563887:AAGBY-CmAL2Cn8uVKC-r8mGaRXmBqG-r4bI";
+// Bot token is now read from Railway Variables (never hardcode it)
+const BOT_TOKEN = process.env.BOT_TOKEN;
+
+if (!BOT_TOKEN) {
+    console.error("ERROR: BOT_TOKEN environment variable is missing. Add it in Railway > Variables.");
+    process.exit(1);
+}
+
 const RAILWAY_DOMAIN = "lp-admin-bot-goku001-production-22d1.up.railway.app";
 
 const getClients = () => {
@@ -30,7 +37,7 @@ const saveClients = (clients) => {
 app.use((req, res, next) => {
     const host = req.headers.host || '';
     const parts = host.split('.');
-    
+
     if (parts.length > 2 && !host.includes('railway.app') && !host.includes('localhost')) {
         const slug = parts[0];
         const clients = getClients();
@@ -50,10 +57,10 @@ app.get('/', (req, res) => {
 app.post('/api/create-client', async (req, res) => {
     const { clientName, slug, botUsername, botApiToken, pixelId, accessToken, channelLink, imageUrl, rootDomain } = req.body;
     const clients = getClients();
-    
+
     const cleanSlug = (slug || 'page').toLowerCase().replace(/[^a-z0-9]/g, '');
     const newId = 'client_' + Date.now();
-    
+
     const newClient = {
         id: newId,
         slug: cleanSlug,
@@ -80,7 +87,7 @@ app.post('/api/create-client', async (req, res) => {
 
     const baseDomain = rootDomain || req.get('host');
     const landingPageUrl = `https://${cleanSlug}.${baseDomain}`;
-    
+
     res.json({ success: true, landingPageUrl, client: newClient });
 });
 
@@ -127,7 +134,7 @@ app.post('/api/telegram-webhook/:id', async (req, res) => {
     try {
         const clients = getClients();
         const client = clients.find(c => c.id === req.params.id);
-        
+
         if (!client || !client.pixelId || !client.accessToken) {
             return res.status(404).json({ error: "Client or Tracking config not found" });
         }
