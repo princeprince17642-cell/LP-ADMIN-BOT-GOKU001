@@ -10,8 +10,9 @@ app.use(express.urlencoded({ extended: true }));
 const DATA_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || __dirname;
 const CLIENTS_FILE = path.join(DATA_DIR, 'clients.json');
 
-// Bot token is read from Railway Variables (never hardcode it)
+// Secrets are read from Railway Variables (never hardcode them)
 const BOT_TOKEN = process.env.BOT_TOKEN;
+const ADMIN_TELEGRAM_ID = String(process.env.ADMIN_TELEGRAM_ID || '').trim();
 
 if (!BOT_TOKEN) {
     console.error("ERROR: BOT_TOKEN environment variable is missing. Add it in Railway > Variables.");
@@ -33,6 +34,60 @@ const saveClients = (clients) => {
     fs.writeFileSync(CLIENTS_FILE, JSON.stringify(clients, null, 2));
 };
 
+// ---------- Telegram authentication ----------
+
+// Validates Telegram Web App initData using the bot token (HMAC-SHA256).
+// Returns the Telegram user object if valid, otherwise null.
+function validateInitData(initData) {
+    if (!initData || typeof initData !== 'string') return null;
+
+    const params = new URLSearchParams(initData);
+    const hash = params.get('hash');
+    if (!hash) return null;
+    params.delete('hash');
+
+    const dataCheckString = Array.from(params.entries())
+        .sort((a, b) => (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
+        .map(([key, value]) => `${key}=${value}`)
+        .join('\n');
+
+    const secretKey = crypto.createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest();
+    const calculated = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+
+    const a = Buffer.from(calculated, 'hex');
+    const b = Buffer.from(hash, 'hex');
+    if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+
+    // Reject very old sessions (24 hours)
+    const authDate = Number(params.get('auth_date'));
+    if (!authDate || Date.now() / 1000 - authDate > 86400) return null;
+
+    try {
+        const user = JSON.parse(params.get('user'));
+        return user && user.id ? user : null;
+    } catch (e) {
+        return null;
+    }
+}
+
+// Middleware: only requests with valid Telegram initData are allowed
+function requireTelegramAuth(req, res, next) {
+    const user = validateInitData(req.get('X-Telegram-Init-Data') || '');
+    if (!user) {
+        return res.status(401).json({ ok: false, error: 'Unauthorized' });
+    }
+    req.tgUser = user;
+    next();
+}
+
+// Middleware: only the admin (ADMIN_TELEGRAM_ID) is allowed
+function requireAdmin(req, res, next) {
+    if (!ADMIN_TELEGRAM_ID || String(req.tgUser.id) !== ADMIN_TELEGRAM_ID) {
+        return res.status(403).json({ ok: false, error: 'Forbidden' });
+    }
+    next();
+}
+
 // Wildcard Subdomain Handler
 app.use((req, res, next) => {
     const host = req.headers.host || '';
@@ -52,6 +107,22 @@ app.use((req, res, next) => {
 
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Logged-in user's Telegram profile (verified on the backend)
+app.get('/api/me', requireTelegramAuth, (req, res) => {
+    const u = req.tgUser;
+    res.json({
+        ok: true,
+        user: {
+            id: u.id,
+            firstName: u.first_name || '',
+            lastName: u.last_name || '',
+            username: u.username || '',
+            photoUrl: u.photo_url || '',
+            isAdmin: !!ADMIN_TELEGRAM_ID && String(u.id) === ADMIN_TELEGRAM_ID
+        }
+    });
 });
 
 app.post('/api/create-client', async (req, res) => {
@@ -91,8 +162,18 @@ app.post('/api/create-client', async (req, res) => {
     res.json({ success: true, landingPageUrl, client: newClient });
 });
 
-app.get('/api/clients', (req, res) => {
-    res.json(getClients());
+// Admin only. Secret tokens are removed from the response.
+app.get('/api/clients', requireTelegramAuth, requireAdmin, (req, res) => {
+    const safeClients = getClients().map(c => ({
+        id: c.id,
+        slug: c.slug,
+        clientName: c.clientName,
+        botUsername: c.botUsername,
+        pixelId: c.pixelId,
+        channelLink: c.channelLink,
+        imageUrl: c.imageUrl
+    }));
+    res.json(safeClients);
 });
 
 // Admin Bot Command & WebApp Handler (/start)
