@@ -10,7 +10,7 @@ app.use(express.urlencoded({ extended: true }));
 const DATA_DIR = process.env.RAILWAY_VOLUME_MOUNT_PATH || __dirname;
 const CLIENTS_FILE = path.join(DATA_DIR, 'clients.json');
 
-// Bot token is now read from Railway Variables (never hardcode it)
+// Bot token is read from Railway Variables (never hardcode it)
 const BOT_TOKEN = process.env.BOT_TOKEN;
 
 if (!BOT_TOKEN) {
@@ -224,8 +224,10 @@ app.listen(PORT, async () => {
     // Auto set webhook on startup
     try {
         const webhookUrl = `https://${RAILWAY_DOMAIN}/api/admin-bot-webhook`;
-        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/setWebhook?url=${encodeURIComponent(webhookUrl)}`);
-        console.log("Admin bot webhook automatically set successfully!");
+        const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/setWebhook?url=${encodeURIComponent(webhookUrl)}`);
+        const result = await response.json();
+        console.log("Webhook URL we tried:", webhookUrl);
+        console.log("Telegram says:", JSON.stringify(result));
     } catch (e) {
         console.error("Auto webhook setup error:", e);
     }
