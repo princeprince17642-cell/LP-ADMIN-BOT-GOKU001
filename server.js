@@ -2,6 +2,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { Pool } = require('pg');
 
 const app = express();
 app.use(express.json());
@@ -13,6 +14,7 @@ const CLIENTS_FILE = path.join(DATA_DIR, 'clients.json');
 // Secrets are read from Railway Variables (never hardcode them)
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const ADMIN_TELEGRAM_ID = String(process.env.ADMIN_TELEGRAM_ID || '').trim();
+const DATABASE_URL = process.env.DATABASE_URL;
 
 if (!BOT_TOKEN) {
     console.error("ERROR: BOT_TOKEN environment variable is missing. Add it in Railway > Variables.");
@@ -20,6 +22,60 @@ if (!BOT_TOKEN) {
 }
 
 const RAILWAY_DOMAIN = "lp-admin-bot-goku001-production-22d1.up.railway.app";
+
+// ---------- Database (PostgreSQL) ----------
+
+let pool = null;
+let dbReady = false;
+
+if (DATABASE_URL) {
+    const useSsl = !DATABASE_URL.includes('railway.internal') && !DATABASE_URL.includes('localhost');
+    pool = new Pool({
+        connectionString: DATABASE_URL,
+        ssl: useSsl ? { rejectUnauthorized: false } : false
+    });
+    pool.on('error', (err) => console.error('Database pool error:', err.message));
+} else {
+    console.error("WARNING: DATABASE_URL is missing. Wallet features are disabled. Add it in Railway > Variables.");
+}
+
+async function initDatabase() {
+    if (!pool) return;
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS users (
+                telegram_id BIGINT PRIMARY KEY,
+                first_name  TEXT NOT NULL DEFAULT '',
+                last_name   TEXT NOT NULL DEFAULT '',
+                username    TEXT NOT NULL DEFAULT '',
+                balance     NUMERIC(12,2) NOT NULL DEFAULT 0 CHECK (balance >= 0),
+                total_bonus NUMERIC(12,2) NOT NULL DEFAULT 0,
+                created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+        `);
+        dbReady = true;
+        console.log("Database ready: users table OK");
+    } catch (e) {
+        console.error("Database init failed:", e.message);
+    }
+}
+
+// Creates the user on first visit, or refreshes their Telegram name/username.
+async function ensureUser(tgUser) {
+    const result = await pool.query(
+        `INSERT INTO users (telegram_id, first_name, last_name, username)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (telegram_id) DO UPDATE
+           SET first_name = EXCLUDED.first_name,
+               last_name  = EXCLUDED.last_name,
+               username   = EXCLUDED.username,
+               updated_at = NOW()
+         RETURNING telegram_id, balance, total_bonus`,
+        [tgUser.id, tgUser.first_name || '', tgUser.last_name || '', tgUser.username || '']
+    );
+    return result.rows[0];
+}
 
 const getClients = () => {
     if (!fs.existsSync(CLIENTS_FILE)) return [];
@@ -123,6 +179,27 @@ app.get('/api/me', requireTelegramAuth, (req, res) => {
             isAdmin: !!ADMIN_TELEGRAM_ID && String(u.id) === ADMIN_TELEGRAM_ID
         }
     });
+});
+
+// Logged-in user's wallet. Balance always comes from the database.
+app.get('/api/wallet', requireTelegramAuth, async (req, res) => {
+    if (!pool || !dbReady) {
+        return res.status(503).json({ ok: false, error: 'Wallet is temporarily unavailable' });
+    }
+    try {
+        const row = await ensureUser(req.tgUser);
+        res.json({
+            ok: true,
+            wallet: {
+                balance: Number(row.balance),
+                totalBonus: Number(row.total_bonus),
+                currency: 'INR'
+            }
+        });
+    } catch (err) {
+        console.error('Wallet error:', err.message);
+        res.status(500).json({ ok: false, error: 'Could not load wallet' });
+    }
 });
 
 app.post('/api/create-client', async (req, res) => {
@@ -302,6 +379,9 @@ function getLandingPageHTML(client) {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, async () => {
     console.log(`Server running on port ${PORT}`);
+
+    await initDatabase();
+
     // Auto set webhook on startup
     try {
         const webhookUrl = `https://${RAILWAY_DOMAIN}/api/admin-bot-webhook`;
