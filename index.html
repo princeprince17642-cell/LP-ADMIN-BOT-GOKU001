@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>GOKU AGENCY STORE</title>
 <meta name="theme-color" content="#070913">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 :root{
   --bg:#070913; --card:#0b1120;
@@ -54,6 +55,32 @@ main{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:6
 .card h2{font-size:20px;margin-bottom:6px}
 .card p{font-size:14px;color:var(--muted)}
 
+/* Account: branding + profile */
+.acc-brand{text-align:center;padding:6px 0 18px}
+.acc-brand-title{font-size:26px;font-weight:800;letter-spacing:.2em;color:#fff;text-shadow:0 0 8px var(--blue),0 0 26px rgba(59,130,246,.6)}
+.acc-brand-sub{margin-top:6px;font-size:11px;letter-spacing:.28em;color:var(--muted);font-weight:600}
+
+.profile-card{position:relative;display:flex;align-items:center;gap:16px;padding:20px;border-radius:22px;background:linear-gradient(160deg,rgba(59,130,246,.10),rgba(11,17,32,.96) 55%);border:1px solid rgba(250,204,21,.28);box-shadow:var(--glow-y),inset 0 0 0 1px rgba(255,255,255,.02)}
+.avatar{position:relative;flex:0 0 auto;width:78px;height:78px;border-radius:50%;padding:3px;background:conic-gradient(from 160deg,var(--blue),var(--yellow),var(--blue));box-shadow:0 0 22px rgba(59,130,246,.45)}
+.avatar-inner{position:relative;width:100%;height:100%;border-radius:50%;overflow:hidden;background:var(--card);display:grid;place-items:center}
+.avatar-inner svg{width:62%;height:62%;stroke:var(--blue);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.avatar-inner img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+.avatar-inner img.show{display:block}
+.p-info{min-width:0;flex:1}
+.p-name{font-size:19px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p-user{margin-top:3px;font-size:14px;color:var(--blue);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.p-id{display:inline-flex;align-items:center;gap:8px;margin-top:10px;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:rgba(59,130,246,.08);font-size:12px;color:var(--muted)}
+.p-id b{color:var(--text);font-weight:700;letter-spacing:.04em}
+.badge-admin{position:absolute;top:14px;right:14px;padding:3px 10px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.12em;color:#1a1400;background:var(--yellow);box-shadow:0 0 14px rgba(250,204,21,.5)}
+.badge-admin[hidden]{display:none}
+
+.skeleton .p-name,.skeleton .p-user,.skeleton .p-id{color:transparent;background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.10),rgba(255,255,255,.04));background-size:200% 100%;animation:shimmer 1.4s linear infinite;border-radius:8px;border-color:transparent}
+.skeleton .p-id b{color:transparent}
+@keyframes shimmer{to{background-position:-200% 0}}
+
+.acc-error{margin-top:14px;padding:14px 16px;border-radius:14px;border:1px solid rgba(248,113,113,.35);background:rgba(248,113,113,.08);color:#fca5a5;font-size:13px;line-height:1.5}
+.acc-error[hidden]{display:none}
+
 /* Floating bottom nav */
 nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:50;max-width:612px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);padding:6px;border-radius:24px;background:rgba(11,17,32,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--line);box-shadow:0 10px 34px rgba(0,0,0,.55),0 0 26px rgba(59,130,246,.16)}
 .pill{position:absolute;top:6px;bottom:6px;left:6px;width:calc((100% - 12px)/4);border-radius:18px;background:linear-gradient(to bottom,rgba(59,130,246,.28),rgba(59,130,246,.08));border:1px solid rgba(59,130,246,.45);box-shadow:0 0 20px rgba(59,130,246,.4);transition:transform .4s cubic-bezier(.4,.1,.2,1);pointer-events:none}
@@ -87,7 +114,30 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
   <section class="view active" id="home"><div class="card gold"><h2>Home</h2><p>Your content goes here.</p></div></section>
   <section class="view" id="landing"><div class="card"><h2>Landing Page</h2><p>Your content goes here.</p></div></section>
   <section class="view" id="orders"><div class="card"><h2>Orders</h2><p>Your content goes here.</p></div></section>
-  <section class="view" id="account"><div class="card"><h2>Account</h2><p>Your content goes here.</p></div></section>
+
+  <section class="view" id="account">
+    <div class="acc-brand">
+      <div class="acc-brand-title">GDX STORE</div>
+      <div class="acc-brand-sub">YOUR ACCOUNT</div>
+    </div>
+
+    <div class="profile-card skeleton" id="profileCard">
+      <span class="badge-admin" id="adminBadge" hidden>ADMIN</span>
+      <div class="avatar">
+        <div class="avatar-inner">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          <img id="pImg" alt="Profile picture" referrerpolicy="no-referrer">
+        </div>
+      </div>
+      <div class="p-info">
+        <div class="p-name" id="pName">Loading name</div>
+        <div class="p-user" id="pUser">@loading</div>
+        <div class="p-id">User ID <b id="pId">0000000000</b></div>
+      </div>
+    </div>
+
+    <div class="acc-error" id="accError" hidden></div>
+  </section>
 </main>
 
 <nav id="nav">
@@ -100,12 +150,18 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
 
 <script>
 (function(){
+  // Telegram Mini App setup
+  var tg = window.Telegram && window.Telegram.WebApp;
+  if (tg) { tg.ready(); tg.expand(); }
+
+  // Splash screen
   setTimeout(function(){
     var s=document.getElementById('splash');
     s.classList.add('hide');
     setTimeout(function(){s.remove()},900);
   },2000);
 
+  // Navigation
   var ids=['home','landing','orders','account'];
   var views=document.querySelectorAll('.view'), tabs=document.querySelectorAll('.tab'), pill=document.getElementById('pill');
   function go(id){
@@ -117,6 +173,57 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
   document.querySelectorAll('[data-go]').forEach(function(el){
     el.addEventListener('click',function(){go(el.dataset.go)});
   });
+
+  // Reusable API helper: always sends Telegram initData so the backend can verify the user
+  function api(path){
+    return fetch(path, {
+      headers: { 'X-Telegram-Init-Data': tg ? tg.initData : '' }
+    }).then(function(res){
+      return res.json().then(function(data){
+        if (!res.ok) throw new Error(data.error || 'Request failed');
+        return data;
+      });
+    });
+  }
+
+  // Account: profile
+  var profileCard = document.getElementById('profileCard');
+  var accError = document.getElementById('accError');
+
+  function showError(msg){
+    accError.textContent = msg;
+    accError.hidden = false;
+  }
+
+  function renderProfile(u){
+    var fullName = [u.firstName, u.lastName].filter(Boolean).join(' ') || 'Telegram User';
+    document.getElementById('pName').textContent = fullName;
+    document.getElementById('pUser').textContent = u.username ? '@' + u.username : 'No username';
+    document.getElementById('pId').textContent = String(u.id);
+    document.getElementById('adminBadge').hidden = !u.isAdmin;
+
+    var img = document.getElementById('pImg');
+    if (u.photoUrl) {
+      img.onload = function(){ img.classList.add('show'); };
+      img.onerror = function(){ img.classList.remove('show'); };
+      img.src = u.photoUrl;
+    }
+    profileCard.classList.remove('skeleton');
+  }
+
+  function loadProfile(){
+    if (!tg || !tg.initData) {
+      showError('Please open GDX STORE from inside Telegram to see your account.');
+      return;
+    }
+    api('/api/me').then(function(data){
+      renderProfile(data.user);
+    }).catch(function(){
+      showError('Could not verify your Telegram account. Please close and reopen the app.');
+    });
+  }
+
+  loadProfile();
 })();
 </script>
 </body>
