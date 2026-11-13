@@ -81,6 +81,21 @@ main{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:6
 .acc-error{margin-top:14px;padding:14px 16px;border-radius:14px;border:1px solid rgba(248,113,113,.35);background:rgba(248,113,113,.08);color:#fca5a5;font-size:13px;line-height:1.5}
 .acc-error[hidden]{display:none}
 
+/* Account: balance card + deposit button */
+.balance-card{position:relative;margin-top:16px;padding:22px 20px;border-radius:22px;overflow:hidden;background:linear-gradient(150deg,rgba(250,204,21,.10),rgba(11,17,32,.97) 60%);border:1px solid rgba(250,204,21,.30);box-shadow:var(--glow-y),inset 0 0 0 1px rgba(255,255,255,.02)}
+.balance-card::after{content:"";position:absolute;right:-60px;top:-60px;width:180px;height:180px;border-radius:50%;background:radial-gradient(circle,rgba(250,204,21,.16),transparent 70%);pointer-events:none}
+.bal-label{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.18em;color:var(--muted)}
+.bal-label svg{width:18px;height:18px;stroke:var(--yellow);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.bal-amount{display:flex;align-items:baseline;gap:6px;margin-top:12px;font-weight:800;color:#fff;text-shadow:0 0 18px rgba(250,204,21,.25)}
+.bal-cur{font-size:26px;color:var(--yellow)}
+.bal-num{font-size:40px;letter-spacing:.01em;line-height:1.1;word-break:break-all}
+.bal-note{margin-top:10px;font-size:12px;color:var(--muted)}
+.skeleton-bal .bal-num{color:transparent;background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.10),rgba(255,255,255,.04));background-size:200% 100%;animation:shimmer 1.4s linear infinite;border-radius:10px}
+
+.deposit-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;margin-top:14px;padding:16px;border-radius:16px;font-size:15px;font-weight:800;letter-spacing:.2em;color:#1a1400;background:linear-gradient(135deg,#fde047,#facc15 55%,#eab308);box-shadow:0 8px 26px rgba(250,204,21,.28),inset 0 1px 0 rgba(255,255,255,.35);transition:transform .15s,box-shadow .2s}
+.deposit-btn svg{width:20px;height:20px;stroke:#1a1400;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.deposit-btn:active{transform:scale(.98);box-shadow:0 4px 16px rgba(250,204,21,.22)}
+
 /* Floating bottom nav */
 nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:50;max-width:612px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);padding:6px;border-radius:24px;background:rgba(11,17,32,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--line);box-shadow:0 10px 34px rgba(0,0,0,.55),0 0 26px rgba(59,130,246,.16)}
 .pill{position:absolute;top:6px;bottom:6px;left:6px;width:calc((100% - 12px)/4);border-radius:18px;background:linear-gradient(to bottom,rgba(59,130,246,.28),rgba(59,130,246,.08));border:1px solid rgba(59,130,246,.45);box-shadow:0 0 20px rgba(59,130,246,.4);transition:transform .4s cubic-bezier(.4,.1,.2,1);pointer-events:none}
@@ -90,6 +105,11 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
 .tab.active{color:var(--yellow)}
 .tab.active svg{filter:drop-shadow(0 0 6px var(--yellow))}
 
+@media (max-width:360px){
+  .bal-num{font-size:34px}
+  .profile-card{padding:16px;gap:12px}
+  .avatar{width:68px;height:68px}
+}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition-duration:.01s!important}}
 </style>
 </head>
@@ -135,6 +155,23 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
         <div class="p-id">User ID <b id="pId">0000000000</b></div>
       </div>
     </div>
+
+    <div class="balance-card skeleton-bal" id="balanceCard">
+      <div class="bal-label">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="6" width="19" height="13" rx="3"/><path d="M2.5 10h19"/><circle cx="17" cy="14.5" r="1.2"/></svg>
+        TOTAL BALANCE
+      </div>
+      <div class="bal-amount">
+        <span class="bal-cur">&#8377;</span>
+        <span class="bal-num" id="balNum">0000.00</span>
+      </div>
+      <div class="bal-note">Available in your GDX STORE wallet (INR)</div>
+    </div>
+
+    <button class="deposit-btn" id="depositBtn" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+      DEPOSIT
+    </button>
 
     <div class="acc-error" id="accError" hidden></div>
   </section>
@@ -186,14 +223,14 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     });
   }
 
-  // Account: profile
-  var profileCard = document.getElementById('profileCard');
   var accError = document.getElementById('accError');
-
   function showError(msg){
     accError.textContent = msg;
     accError.hidden = false;
   }
+
+  // Account: profile
+  var profileCard = document.getElementById('profileCard');
 
   function renderProfile(u){
     var fullName = [u.firstName, u.lastName].filter(Boolean).join(' ') || 'Telegram User';
@@ -212,18 +249,45 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
   }
 
   function loadProfile(){
-    if (!tg || !tg.initData) {
-      showError('Please open GDX STORE from inside Telegram to see your account.');
-      return;
-    }
-    api('/api/me').then(function(data){
+    return api('/api/me').then(function(data){
       renderProfile(data.user);
     }).catch(function(){
       showError('Could not verify your Telegram account. Please close and reopen the app.');
     });
   }
 
-  loadProfile();
+  // Account: wallet balance (always fetched from the backend)
+  var balanceCard = document.getElementById('balanceCard');
+
+  function formatINR(n){
+    return new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+  }
+
+  function loadWallet(){
+    return api('/api/wallet').then(function(data){
+      document.getElementById('balNum').textContent = formatINR(data.wallet.balance);
+      balanceCard.classList.remove('skeleton-bal');
+    }).catch(function(){
+      document.getElementById('balNum').textContent = '--';
+      balanceCard.classList.remove('skeleton-bal');
+      showError('Could not load your balance right now. Please try again in a moment.');
+    });
+  }
+
+  // Deposit button: UI placeholder only. Payment system comes in a later task.
+
+  function loadAccount(){
+    if (!tg || !tg.initData) {
+      document.getElementById('balNum').textContent = '--';
+      balanceCard.classList.remove('skeleton-bal');
+      showError('Please open GDX STORE from inside Telegram to see your account.');
+      return;
+    }
+    loadProfile();
+    loadWallet();
+  }
+
+  loadAccount();
 })();
 </script>
 </body>
