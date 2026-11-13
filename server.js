@@ -240,6 +240,77 @@ app.get('/api/wallet', requireTelegramAuth, async (req, res) => {
     }
 });
 
+// Logged-in user's deposit history (latest 100) with counts per status.
+app.get('/api/deposits', requireTelegramAuth, async (req, res) => {
+    if (!pool || !dbReady) {
+        return res.status(503).json({ ok: false, error: 'Deposits are temporarily unavailable' });
+    }
+    try {
+        const uid = req.tgUser.id;
+        const list = await pool.query(
+            `SELECT id, amount, status, reference, created_at
+             FROM deposits WHERE telegram_id = $1
+             ORDER BY created_at DESC, id DESC LIMIT 100`,
+            [uid]
+        );
+        const countRows = await pool.query(
+            `SELECT status, COUNT(*) AS c FROM deposits WHERE telegram_id = $1 GROUP BY status`,
+            [uid]
+        );
+        const counts = { completed: 0, failed: 0, pending: 0 };
+        countRows.rows.forEach(r => {
+            if (counts.hasOwnProperty(r.status)) counts[r.status] = Number(r.c);
+        });
+        res.json({
+            ok: true,
+            counts,
+            deposits: list.rows.map(r => ({
+                id: String(r.id),
+                amount: Number(r.amount),
+                status: r.status,
+                reference: r.reference || '',
+                createdAt: r.created_at
+            }))
+        });
+    } catch (err) {
+        console.error('Deposits error:', err.message);
+        res.status(500).json({ ok: false, error: 'Could not load deposits' });
+    }
+});
+
+// Logged-in user's transaction history (latest 100).
+const CREDIT_TYPES = ['deposit', 'gift_code', 'refund', 'bonus'];
+
+app.get('/api/transactions', requireTelegramAuth, async (req, res) => {
+    if (!pool || !dbReady) {
+        return res.status(503).json({ ok: false, error: 'Transactions are temporarily unavailable' });
+    }
+    try {
+        const list = await pool.query(
+            `SELECT id, type, amount, status, balance_after, note, created_at
+             FROM transactions WHERE telegram_id = $1
+             ORDER BY created_at DESC, id DESC LIMIT 100`,
+            [req.tgUser.id]
+        );
+        res.json({
+            ok: true,
+            transactions: list.rows.map(r => ({
+                id: String(r.id),
+                type: r.type,
+                direction: CREDIT_TYPES.includes(r.type) ? 'credit' : 'debit',
+                amount: Number(r.amount),
+                status: r.status,
+                balanceAfter: r.balance_after === null ? null : Number(r.balance_after),
+                note: r.note || '',
+                createdAt: r.created_at
+            }))
+        });
+    } catch (err) {
+        console.error('Transactions error:', err.message);
+        res.status(500).json({ ok: false, error: 'Could not load transactions' });
+    }
+});
+
 app.post('/api/create-client', async (req, res) => {
     const { clientName, slug, botUsername, botApiToken, pixelId, accessToken, channelLink, imageUrl, rootDomain } = req.body;
     const clients = getClients();
