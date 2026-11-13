@@ -54,8 +54,38 @@ async function initDatabase() {
                 updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
             )
         `);
+
+        // Deposits: one row per deposit attempt. Filled by the payment system (later task).
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS deposits (
+                id          BIGSERIAL PRIMARY KEY,
+                telegram_id BIGINT NOT NULL REFERENCES users(telegram_id),
+                amount      NUMERIC(12,2) NOT NULL CHECK (amount > 0),
+                status      TEXT NOT NULL DEFAULT 'pending',
+                reference   TEXT,
+                created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+        `);
+
+        // Transactions: every wallet movement (deposit, gift code, purchase, refund).
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS transactions (
+                id            BIGSERIAL PRIMARY KEY,
+                telegram_id   BIGINT NOT NULL REFERENCES users(telegram_id),
+                type          TEXT NOT NULL,
+                amount        NUMERIC(12,2) NOT NULL,
+                status        TEXT NOT NULL DEFAULT 'completed',
+                balance_after NUMERIC(12,2),
+                note          TEXT NOT NULL DEFAULT '',
+                created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+        `);
+
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_deposits_user ON deposits (telegram_id)`);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions (telegram_id)`);
+
         dbReady = true;
-        console.log("Database ready: users table OK");
+        console.log("Database ready: users, deposits, transactions tables OK");
     } catch (e) {
         console.error("Database init failed:", e.message);
     }
@@ -181,19 +211,27 @@ app.get('/api/me', requireTelegramAuth, (req, res) => {
     });
 });
 
-// Logged-in user's wallet. Balance always comes from the database.
+// Logged-in user's wallet. Balance and record counts always come from the database.
 app.get('/api/wallet', requireTelegramAuth, async (req, res) => {
     if (!pool || !dbReady) {
         return res.status(503).json({ ok: false, error: 'Wallet is temporarily unavailable' });
     }
     try {
         const row = await ensureUser(req.tgUser);
+        const counts = await pool.query(
+            `SELECT
+                (SELECT COUNT(*) FROM deposits     WHERE telegram_id = $1) AS deposit_count,
+                (SELECT COUNT(*) FROM transactions WHERE telegram_id = $1) AS transaction_count`,
+            [req.tgUser.id]
+        );
         res.json({
             ok: true,
             wallet: {
                 balance: Number(row.balance),
                 totalBonus: Number(row.total_bonus),
-                currency: 'INR'
+                currency: 'INR',
+                depositCount: Number(counts.rows[0].deposit_count),
+                transactionCount: Number(counts.rows[0].transaction_count)
             }
         });
     } catch (err) {
