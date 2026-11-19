@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { Pool } = require('pg');
+const { LANDING_TEMPLATES, findTemplate, renderLandingTemplate } = require('./landing-templates');
 
 const app = express();
 app.use(express.json());
@@ -55,7 +56,6 @@ async function initDatabase() {
             )
         `);
 
-        // Deposits: one row per deposit attempt (status: pending / completed / failed).
         await pool.query(`
             CREATE TABLE IF NOT EXISTS deposits (
                 id          BIGSERIAL PRIMARY KEY,
@@ -67,7 +67,6 @@ async function initDatabase() {
             )
         `);
 
-        // Transactions: every wallet movement (deposit, gift_code, purchase, refund, bonus).
         await pool.query(`
             CREATE TABLE IF NOT EXISTS transactions (
                 id            BIGSERIAL PRIMARY KEY,
@@ -81,7 +80,6 @@ async function initDatabase() {
             )
         `);
 
-        // Orders: used for statistics and refunds. The order system itself comes in a later phase.
         // status: pending / processing / completed / failed / cancelled / refunded
         await pool.query(`
             CREATE TABLE IF NOT EXISTS orders (
@@ -95,7 +93,11 @@ async function initDatabase() {
             )
         `);
 
-        // Gift codes (managed by admin) and who redeemed them.
+        // New columns for the Orders section (safe to run many times)
+        await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS note TEXT NOT NULL DEFAULT ''`);
+        await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`);
+        await pool.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS order_id BIGINT`);
+
         await pool.query(`
             CREATE TABLE IF NOT EXISTS gift_codes (
                 id         BIGSERIAL PRIMARY KEY,
@@ -119,12 +121,21 @@ async function initDatabase() {
             )
         `);
 
+        // The landing page design each user has selected (one row per user)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS landing_selections (
+                telegram_id  BIGINT PRIMARY KEY REFERENCES users(telegram_id),
+                template_key TEXT NOT NULL,
+                updated_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+        `);
+
         await pool.query(`CREATE INDEX IF NOT EXISTS idx_deposits_user ON deposits (telegram_id)`);
         await pool.query(`CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions (telegram_id)`);
-        await pool.query(`CREATE INDEX IF NOT EXISTS idx_orders_user ON orders (telegram_id)`);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_orders_user ON orders (telegram_id, created_at DESC)`);
 
         dbReady = true;
-        console.log("Database ready: users, deposits, transactions, orders, gift_codes, gift_code_redemptions OK");
+        console.log("Database ready: all tables OK");
     } catch (e) {
         console.error("Database init failed:", e.message);
     }
@@ -237,6 +248,64 @@ function isClaimRateLimited(userId) {
     return false;
 }
 
+function orderCode(id) {
+    return 'GDX-' + String(id).padStart(6, '0');
+}
+
+function parseId(value) {
+    const n = Number(value);
+    return Number.isSafeInteger(n) && n > 0 ? n : null;
+}
+
+// Creates an order and charges the wallet in ONE database transaction.
+// Use this from the services marketplace when a user buys something (later phase).
+// New orders always start as "pending". Returns { status, orderId, balance } or { status, error }.
+async function createOrder(tgUser, serviceName, amount, note) {
+    const db = await pool.connect();
+    try {
+        await db.query('BEGIN');
+        await ensureUser(db, tgUser);
+
+        const bal = await db.query(
+            `SELECT balance FROM users WHERE telegram_id = $1 FOR UPDATE`,
+            [tgUser.id]
+        );
+        if (Number(bal.rows[0].balance) < amount) {
+            await db.query('ROLLBACK');
+            return { status: 402, error: 'Insufficient wallet balance for this order.' };
+        }
+
+        const updated = await db.query(
+            `UPDATE users SET balance = balance - $1, updated_at = NOW()
+             WHERE telegram_id = $2 RETURNING balance`,
+            [amount, tgUser.id]
+        );
+        const newBalance = updated.rows[0].balance;
+
+        const ord = await db.query(
+            `INSERT INTO orders (telegram_id, service_name, amount, status, note)
+             VALUES ($1, $2, $3, 'pending', $4) RETURNING id`,
+            [tgUser.id, serviceName, amount, note || '']
+        );
+        const orderId = ord.rows[0].id;
+
+        await db.query(
+            `INSERT INTO transactions (telegram_id, type, amount, status, balance_after, note, order_id)
+             VALUES ($1, 'purchase', $2, 'completed', $3, $4, $5)`,
+            [tgUser.id, amount, newBalance, `Order ${orderCode(orderId)}: ${serviceName}`, orderId]
+        );
+
+        await db.query('COMMIT');
+        return { status: 200, orderId: String(orderId), balance: Number(newBalance) };
+    } catch (err) {
+        try { await db.query('ROLLBACK'); } catch (e) { /* ignore */ }
+        console.error('Create order error:', err.message);
+        return { status: 500, error: 'Could not create the order.' };
+    } finally {
+        db.release();
+    }
+}
+
 // Refunds ONE failed order back to the wallet. Safe against double refunds:
 // the order row is locked, and only a "failed" order that was never refunded can pass.
 async function refundOrder(orderId) {
@@ -276,13 +345,13 @@ async function refundOrder(orderId) {
         const newBalance = updated.rows[0].balance;
 
         await db.query(
-            `UPDATE orders SET status = 'refunded', refunded_at = NOW() WHERE id = $1`,
+            `UPDATE orders SET status = 'refunded', refunded_at = NOW(), updated_at = NOW() WHERE id = $1`,
             [order.id]
         );
         await db.query(
-            `INSERT INTO transactions (telegram_id, type, amount, status, balance_after, note)
-             VALUES ($1, 'refund', $2, 'completed', $3, $4)`,
-            [order.telegram_id, order.amount, newBalance, `Refund for order #${order.id}`]
+            `INSERT INTO transactions (telegram_id, type, amount, status, balance_after, note, order_id)
+             VALUES ($1, 'refund', $2, 'completed', $3, $4, $5)`,
+            [order.telegram_id, order.amount, newBalance, `Refund for order ${orderCode(order.id)}`, order.id]
         );
 
         await db.query('COMMIT');
@@ -316,6 +385,74 @@ app.use((req, res, next) => {
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
 });
+
+// Official GDX logo (file "logo.png" in the repository root)
+app.get('/logo.png', (req, res) => {
+    const file = path.join(__dirname, 'logo.png');
+    if (!fs.existsSync(file)) return res.status(404).end();
+    res.set('Cache-Control', 'public, max-age=86400');
+    res.sendFile(file);
+});
+
+// ---------- Landing page designs ----------
+
+// Public: list of the four designs (name + tagline only)
+app.get('/api/landing/templates', (req, res) => {
+    res.json({ ok: true, templates: LANDING_TEMPLATES });
+});
+
+// Public: full, responsive demo page of one design (used for previews inside iframes)
+app.get('/preview/landing/:key', (req, res) => {
+    const html = renderLandingTemplate(req.params.key);
+    if (!html) return res.status(404).send('Design not found');
+    res.set('Cache-Control', 'no-store');
+    res.type('html').send(html);
+});
+
+// The design the logged-in user has selected (null if none yet)
+app.get('/api/landing/selection', requireTelegramAuth, async (req, res) => {
+    if (!pool || !dbReady) {
+        return res.status(503).json({ ok: false, error: 'Temporarily unavailable' });
+    }
+    try {
+        const r = await pool.query(
+            `SELECT template_key FROM landing_selections WHERE telegram_id = $1`,
+            [req.tgUser.id]
+        );
+        const key = r.rows.length ? r.rows[0].template_key : null;
+        res.json({ ok: true, selected: key && findTemplate(key) ? key : null });
+    } catch (err) {
+        console.error('Selection error:', err.message);
+        res.status(500).json({ ok: false, error: 'Could not load your selected design' });
+    }
+});
+
+// Save (or change) the selected design
+app.post('/api/landing/select', requireTelegramAuth, async (req, res) => {
+    if (!pool || !dbReady) {
+        return res.status(503).json({ ok: false, error: 'Temporarily unavailable' });
+    }
+    const key = String((req.body && req.body.template) || '');
+    if (!findTemplate(key)) {
+        return res.status(400).json({ ok: false, error: 'Unknown design.' });
+    }
+    try {
+        await ensureUser(pool, req.tgUser);
+        await pool.query(
+            `INSERT INTO landing_selections (telegram_id, template_key)
+             VALUES ($1, $2)
+             ON CONFLICT (telegram_id) DO UPDATE
+               SET template_key = EXCLUDED.template_key, updated_at = NOW()`,
+            [req.tgUser.id, key]
+        );
+        res.json({ ok: true, selected: key });
+    } catch (err) {
+        console.error('Select design error:', err.message);
+        res.status(500).json({ ok: false, error: 'Could not save your design. Please try again.' });
+    }
+});
+
+// ---------- Profile, wallet, stats ----------
 
 // Logged-in user's Telegram profile (verified on the backend)
 app.get('/api/me', requireTelegramAuth, (req, res) => {
@@ -370,7 +507,6 @@ app.get('/api/wallet', requireTelegramAuth, async (req, res) => {
 });
 
 // User statistics. Orders counted = processing + completed (no double counting).
-// Failed, cancelled, pending and refunded orders are never counted as spending.
 app.get('/api/stats', requireTelegramAuth, async (req, res) => {
     if (!pool || !dbReady) {
         return res.status(503).json({ ok: false, error: 'Statistics are temporarily unavailable' });
@@ -476,8 +612,151 @@ app.get('/api/transactions', requireTelegramAuth, async (req, res) => {
     }
 });
 
+// ---------- Orders ----------
+
+function formatOrder(r) {
+    return {
+        id: String(r.id),
+        orderCode: orderCode(r.id),
+        serviceName: r.service_name,
+        amount: Number(r.amount),
+        status: r.status,
+        note: r.note || '',
+        refundedAt: r.refunded_at,
+        createdAt: r.created_at,
+        updatedAt: r.updated_at
+    };
+}
+
+// All orders of the logged-in user (newest first). New orders appear here automatically.
+app.get('/api/orders', requireTelegramAuth, async (req, res) => {
+    if (!pool || !dbReady) {
+        return res.status(503).json({ ok: false, error: 'Orders are temporarily unavailable' });
+    }
+    try {
+        const list = await pool.query(
+            `SELECT id, service_name, amount, status, note, refunded_at, created_at, updated_at
+             FROM orders WHERE telegram_id = $1
+             ORDER BY created_at DESC, id DESC LIMIT 300`,
+            [req.tgUser.id]
+        );
+        res.json({ ok: true, orders: list.rows.map(formatOrder) });
+    } catch (err) {
+        console.error('Orders error:', err.message);
+        res.status(500).json({ ok: false, error: 'Could not load your orders' });
+    }
+});
+
+// Details of ONE order. A user can only open their own orders.
+app.get('/api/orders/:id', requireTelegramAuth, async (req, res) => {
+    if (!pool || !dbReady) {
+        return res.status(503).json({ ok: false, error: 'Orders are temporarily unavailable' });
+    }
+    const id = parseId(req.params.id);
+    if (!id) return res.status(400).json({ ok: false, error: 'Invalid order id.' });
+    try {
+        const found = await pool.query(
+            `SELECT id, service_name, amount, status, note, refunded_at, created_at, updated_at
+             FROM orders WHERE id = $1 AND telegram_id = $2`,
+            [id, req.tgUser.id]
+        );
+        if (!found.rows.length) return res.status(404).json({ ok: false, error: 'Order not found.' });
+
+        const tx = await pool.query(
+            `SELECT id, type, amount, status, created_at
+             FROM transactions WHERE telegram_id = $1 AND order_id = $2
+             ORDER BY created_at, id`,
+            [req.tgUser.id, id]
+        );
+        res.json({
+            ok: true,
+            order: formatOrder(found.rows[0]),
+            transactions: tx.rows.map(t => ({
+                id: String(t.id),
+                type: t.type,
+                direction: CREDIT_TYPES.includes(t.type) ? 'credit' : 'debit',
+                amount: Number(t.amount),
+                status: t.status,
+                createdAt: t.created_at
+            }))
+        });
+    } catch (err) {
+        console.error('Order details error:', err.message);
+        res.status(500).json({ ok: false, error: 'Could not load this order' });
+    }
+});
+
+// Admin only: create a test order on the admin's own account (charged from the admin's wallet).
+app.post('/api/admin/orders', requireTelegramAuth, requireAdmin, async (req, res) => {
+    if (!pool || !dbReady) {
+        return res.status(503).json({ ok: false, error: 'Database is not ready' });
+    }
+    const body = req.body || {};
+    const serviceName = String(body.serviceName || '').trim().slice(0, 80);
+    const amount = Math.round(Number(body.amount) * 100) / 100;
+
+    if (serviceName.length < 2) {
+        return res.status(400).json({ ok: false, error: 'Service name must be at least 2 characters.' });
+    }
+    if (!isFinite(amount) || amount <= 0 || amount > 100000) {
+        return res.status(400).json({ ok: false, error: 'Amount must be between 0.01 and 100000.' });
+    }
+
+    const result = await createOrder(req.tgUser, serviceName, amount, 'Test order created by admin');
+    if (result.error) return res.status(result.status).json({ ok: false, error: result.error });
+    res.json({ ok: true, orderId: result.orderId, orderCode: orderCode(result.orderId), balance: result.balance });
+});
+
+// Allowed status changes. Completed, failed, cancelled and refunded are final.
+const ORDER_TRANSITIONS = {
+    pending:    ['processing', 'completed', 'failed', 'cancelled'],
+    processing: ['completed', 'failed', 'cancelled']
+};
+
+// Admin only: change the status of an order.
+app.post('/api/admin/orders/:id/status', requireTelegramAuth, requireAdmin, async (req, res) => {
+    if (!pool || !dbReady) {
+        return res.status(503).json({ ok: false, error: 'Database is not ready' });
+    }
+    const id = parseId(req.params.id);
+    if (!id) return res.status(400).json({ ok: false, error: 'Invalid order id.' });
+
+    const status = String((req.body && req.body.status) || '');
+    const allowedFrom = Object.keys(ORDER_TRANSITIONS).filter(s => ORDER_TRANSITIONS[s].includes(status));
+    if (!allowedFrom.length) return res.status(400).json({ ok: false, error: 'Invalid status.' });
+
+    try {
+        const r = await pool.query(
+            `UPDATE orders SET status = $1, updated_at = NOW()
+             WHERE id = $2 AND status = ANY($3::text[]) RETURNING id`,
+            [status, id, allowedFrom]
+        );
+        if (!r.rows.length) {
+            return res.status(409).json({ ok: false, error: 'Order not found, or its status can no longer be changed.' });
+        }
+        res.json({ ok: true });
+    } catch (err) {
+        console.error('Order status error:', err.message);
+        res.status(500).json({ ok: false, error: 'Could not update the order.' });
+    }
+});
+
+// Admin only: refund a failed order to the user's wallet (never twice).
+app.post('/api/admin/orders/:id/refund', requireTelegramAuth, requireAdmin, async (req, res) => {
+    if (!pool || !dbReady) {
+        return res.status(503).json({ ok: false, error: 'Database is not ready' });
+    }
+    const orderId = parseId(req.params.id);
+    if (!orderId) return res.status(400).json({ ok: false, error: 'Invalid order id.' });
+
+    const result = await refundOrder(orderId);
+    if (result.error) return res.status(result.status).json({ ok: false, error: result.error });
+    res.json({ ok: true, refunded: result.refunded, balance: result.balance });
+});
+
+// ---------- Gift codes ----------
+
 // Gift code claim. Everything happens inside ONE database transaction.
-// The gift code row is locked, so two people (or two taps) can never over-redeem a code.
 app.post('/api/gift-code/claim', requireTelegramAuth, async (req, res) => {
     if (!pool || !dbReady) {
         return res.status(503).json({ ok: false, error: 'Gift codes are temporarily unavailable' });
@@ -594,19 +873,7 @@ app.post('/api/admin/gift-codes', requireTelegramAuth, requireAdmin, async (req,
     }
 });
 
-// Admin only: refund a failed order to the user's wallet (never twice).
-app.post('/api/admin/orders/:id/refund', requireTelegramAuth, requireAdmin, async (req, res) => {
-    if (!pool || !dbReady) {
-        return res.status(503).json({ ok: false, error: 'Database is not ready' });
-    }
-    const orderId = Number(req.params.id);
-    if (!Number.isInteger(orderId) || orderId <= 0) {
-        return res.status(400).json({ ok: false, error: 'Invalid order id.' });
-    }
-    const result = await refundOrder(orderId);
-    if (result.error) return res.status(result.status).json({ ok: false, error: result.error });
-    res.json({ ok: true, refunded: result.refunded, balance: result.balance });
-});
+// ---------- Existing client / bot features (unchanged) ----------
 
 app.post('/api/create-client', async (req, res) => {
     const { clientName, slug, botUsername, botApiToken, pixelId, accessToken, channelLink, imageUrl, rootDomain } = req.body;
