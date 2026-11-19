@@ -52,61 +52,101 @@ main{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:6
 .view{display:none;animation:in .35s ease}
 .view.active{display:block}
 @keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-
 .acc-sub{animation:in .3s ease}
 .acc-sub[hidden]{display:none}
 
 /* ===== HOME ===== */
-.hero{position:relative;overflow:hidden;padding:26px 18px 20px;border-radius:26px;text-align:center;background:linear-gradient(160deg,rgba(59,130,246,.16),rgba(139,92,246,.08) 45%,rgba(11,17,32,.97));border:1px solid rgba(59,130,246,.35);box-shadow:0 14px 40px rgba(59,130,246,.18),inset 0 1px 0 rgba(255,255,255,.06)}
-.hero::before{content:"";position:absolute;left:50%;top:-90px;width:320px;height:230px;transform:translateX(-50%);background:radial-gradient(circle,rgba(59,130,246,.35),transparent 70%);pointer-events:none}
-.hero>*{position:relative}
-.hero-badge{display:inline-block;padding:6px 14px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.24em;color:#fde047;border:1px solid rgba(250,204,21,.4);background:rgba(250,204,21,.08)}
-.hero h1{margin:16px 0 10px;font-size:clamp(22px,7vw,30px);line-height:1.15;font-weight:900;letter-spacing:.06em;color:#fff}
-.hero h1 span{display:block;margin-top:4px;font-size:clamp(34px,10.5vw,46px);letter-spacing:.14em;background:linear-gradient(90deg,#60a5fa,#a78bfa 50%,#fde047);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 18px rgba(96,165,250,.35))}
-.hero .lead{font-size:15px;font-weight:600;color:#dbe6ff;line-height:1.5}
-.hero .desc{margin-top:10px;font-size:13.5px;color:#9db0d6;line-height:1.7}
-.hero-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:20px}
+.welcome{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:4px 2px 16px}
+.w-hey{font-size:15px;font-weight:600;color:#9db0d6}
+.w-hey b{color:#fff;font-weight:800}
+.wave{display:inline-block;margin-left:4px;transform-origin:70% 70%;animation:wave 2.4s ease-in-out 1s 2}
+@keyframes wave{0%,60%,100%{transform:rotate(0)}10%,30%{transform:rotate(14deg)}20%,40%{transform:rotate(-8deg)}50%{transform:rotate(10deg)}}
+.w-title{margin-top:4px;font-size:clamp(24px,7.4vw,30px);line-height:1.15;font-weight:900;color:#fff}
+.w-title b{display:block;letter-spacing:.04em;background:linear-gradient(90deg,#60a5fa,#a78bfa 55%,#fde047);-webkit-background-clip:text;background-clip:text;color:transparent}
+.welcome .avatar{width:64px;height:64px}
+
+.hero2{position:relative;overflow:hidden;padding:20px 18px 18px;border-radius:26px;background:linear-gradient(160deg,rgba(59,130,246,.16),rgba(139,92,246,.09) 48%,rgba(11,17,32,.97));border:1px solid rgba(59,130,246,.35);box-shadow:0 14px 40px rgba(59,130,246,.18),inset 0 1px 0 rgba(255,255,255,.06)}
+.hero2::before{content:"";position:absolute;right:-70px;top:-80px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(139,92,246,.32),transparent 70%);pointer-events:none}
+.hero2>*{position:relative}
+.hero-badge{display:inline-block;padding:6px 14px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.22em;color:#fde047;border:1px solid rgba(250,204,21,.4);background:rgba(250,204,21,.08)}
+.hero2 h2{margin:12px 0 8px;font-size:clamp(20px,6vw,24px);line-height:1.25;font-weight:800;color:#fff}
+.hero2 h2 span{background:linear-gradient(90deg,#fde047,#f59e0b);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero2 .desc{font-size:13.5px;color:#9db0d6;line-height:1.7}
+.hero-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+.hero-actions .btn-primary{padding:13px 10px;font-size:12px;letter-spacing:.1em}
 .btn-ghost{padding:13px 10px;border-radius:14px;font-size:12px;font-weight:800;letter-spacing:.1em;color:#fff;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.06);transition:transform .15s}
 .btn-ghost:active{transform:scale(.97)}
-.hero-actions .btn-primary{padding:13px 10px;font-size:12px;letter-spacing:.1em}
-
-.perks{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px}
-.perk{padding:14px 8px;text-align:center;border-radius:18px;background:linear-gradient(160deg,rgba(255,255,255,.045),rgba(11,17,32,.97) 60%);border:1px solid var(--line)}
-.perk svg{width:22px;height:22px;stroke:#60a5fa;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
-.perk b{display:block;margin-top:8px;font-size:11.5px;color:#fff}
-.perk span{display:block;margin-top:3px;font-size:10px;color:var(--muted);line-height:1.4}
+.btn-ghost.wide{display:block;width:100%;margin-top:14px}
 
 .sec-h{display:flex;align-items:center;gap:10px;margin:28px 2px 4px;font-size:18px;font-weight:900;letter-spacing:.1em;color:#fff}
 .sec-h::before{content:"";width:4px;height:20px;border-radius:4px;background:linear-gradient(180deg,#facc15,#f59e0b);box-shadow:0 0 12px rgba(250,204,21,.5)}
 .sec-p{margin:0 2px 14px;font-size:12.5px;color:var(--muted);line-height:1.55}
-.cta-card{margin-top:16px;padding:18px;text-align:center;border-radius:22px;border:1px solid rgba(250,204,21,.3);background:linear-gradient(160deg,rgba(250,204,21,.08),rgba(11,17,32,.97) 60%)}
-.cta-card b{display:block;font-size:15px;color:#fff}
-.cta-card span{display:block;margin:4px 0 12px;font-size:12px;color:var(--muted)}
 
-/* ===== Design gallery (Home + Landing Pages) ===== */
-.gallery{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.dcard{position:relative;padding:10px;border-radius:20px;background:linear-gradient(160deg,rgba(255,255,255,.045),rgba(11,17,32,.97) 60%);border:1px solid var(--line);transition:border-color .2s,box-shadow .2s}
-.dcard.is-sel{border-color:rgba(34,197,94,.65);box-shadow:0 0 24px rgba(34,197,94,.22)}
-.thumb{position:relative;overflow:hidden;aspect-ratio:3/4;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:#000;cursor:pointer}
+/* Featured cards (Home) */
+.feat-list{display:flex;flex-direction:column;gap:12px}
+.fcard{--ac:#3b82f6;--acb:rgba(59,130,246,.35);position:relative;display:flex;gap:14px;align-items:stretch;padding:12px;border-radius:22px;background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(11,17,32,.97) 60%);border:1px solid var(--line);cursor:pointer;transition:transform .25s cubic-bezier(.3,1.4,.5,1),border-color .25s,box-shadow .25s}
+.fcard:active{transform:scale(.985)}
+.fcard.is-sel{border-color:var(--ac);box-shadow:0 0 24px var(--acb)}
+.fcard .thumb{flex:0 0 104px;width:104px}
+.f-body{min-width:0;flex:1;display:flex;flex-direction:column}
+.f-chip{align-self:flex-start;padding:3px 9px;border-radius:999px;font-size:9px;font-weight:800;letter-spacing:.14em;color:var(--ac);background:rgba(255,255,255,.04);border:1px solid var(--acb)}
+.f-name{margin-top:8px;font-size:16px;font-weight:800;color:#fff}
+.f-desc{margin-top:4px;font-size:12px;color:var(--muted);line-height:1.5}
+.f-btn{display:inline-flex;align-items:center;gap:7px;align-self:flex-start;margin-top:auto;padding:9px 16px;border-radius:12px;font-size:11px;font-weight:800;letter-spacing:.12em;color:#fff;background:linear-gradient(135deg,#6366f1,#8b5cf6);box-shadow:0 8px 20px rgba(99,102,241,.4);transition:transform .15s}
+.f-btn:active{transform:scale(.96)}
+.f-btn svg{width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* Thumbnails (live mini previews) + selected check */
+.thumb{position:relative;overflow:hidden;aspect-ratio:3/4;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:#000}
 .thumb iframe{position:absolute;left:0;top:0;width:390px;height:520px;border:0;transform-origin:0 0;pointer-events:none;background:#000}
-.sel-tag{position:absolute;top:16px;right:16px;display:none;padding:3px 9px;border-radius:999px;font-size:9px;font-weight:800;letter-spacing:.12em;color:#052e16;background:#4ade80;box-shadow:0 0 14px rgba(74,222,128,.5)}
-.dcard.is-sel .sel-tag{display:block}
-.d-name{margin-top:10px;font-size:13.5px;font-weight:800;color:#fff}
-.d-tag{margin-top:2px;min-height:30px;font-size:11px;color:var(--muted);line-height:1.4}
-.d-actions{display:grid;gap:8px;margin-top:10px}
-.btn-sm{width:100%;padding:11px 8px;border-radius:12px;font-size:11px;font-weight:800;letter-spacing:.1em}
-.btn-outline{border:1px solid rgba(96,165,250,.5);color:#93c5fd;background:rgba(59,130,246,.08)}
-.btn-sel-on{background:linear-gradient(135deg,#22c55e,#06b6d4)!important;box-shadow:0 8px 22px rgba(34,197,94,.35)!important}
+.check{position:absolute;top:7px;right:7px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--ac,#22c55e);box-shadow:0 0 14px var(--acb,rgba(34,197,94,.5));transform:scale(0);transition:transform .35s cubic-bezier(.3,1.7,.5,1)}
+.check svg{width:14px;height:14px;stroke:#05070f;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.is-sel .check{transform:scale(1)}
 
-.sel-banner{display:flex;align-items:center;gap:12px;margin:14px 0;padding:14px;border-radius:18px;border:1px solid var(--line);background:rgba(11,17,32,.9)}
-.sel-banner.on{border-color:rgba(34,197,94,.5);background:linear-gradient(160deg,rgba(34,197,94,.10),rgba(11,17,32,.97))}
-.sel-ico{flex:0 0 auto;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:rgba(139,92,246,.16);border:1px solid rgba(139,92,246,.4)}
-.sel-banner.on .sel-ico{background:rgba(34,197,94,.16);border-color:rgba(34,197,94,.5)}
-.sel-ico svg{width:20px;height:20px;stroke:#a78bfa;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.sel-banner.on .sel-ico svg{stroke:#4ade80}
-.sel-text b{display:block;font-size:13.5px;color:#fff}
-.sel-text span{display:block;margin-top:2px;font-size:11.5px;color:var(--muted);line-height:1.45}
-.soon{margin-top:16px;text-align:center;font-size:11.5px;color:var(--muted)}
+/* ===== LANDING PAGES ===== */
+#landing.has-sel{padding-bottom:100px}
+.lp-head{padding:2px 2px 0}
+.lp-head h1{margin-top:10px;font-size:clamp(22px,7vw,28px);letter-spacing:.1em;font-weight:900;color:#fff}
+.lp-head p{margin-top:6px;font-size:12.5px;color:var(--muted);line-height:1.55}
+
+.stage{margin-top:14px;overflow:hidden;border-radius:22px;border:1px solid rgba(139,92,246,.35);background:#0b1120;box-shadow:0 12px 36px rgba(0,0,0,.45)}
+.stage-top{display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line);background:rgba(11,17,32,.95)}
+.dots{display:flex;gap:5px}
+.dots i{width:8px;height:8px;border-radius:50%;background:#334155}
+.dots i:nth-child(1){background:#f87171}.dots i:nth-child(2){background:#fbbf24}.dots i:nth-child(3){background:#4ade80}
+.stage-name{flex:1;min-width:0;font-size:12px;font-weight:800;letter-spacing:.06em;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stage-full{flex:0 0 auto;padding:6px 11px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.1em;color:#93c5fd;border:1px solid rgba(96,165,250,.45);background:rgba(59,130,246,.08)}
+.stage-body{position:relative;height:min(50vh,430px);min-height:290px;background:#05070f}
+.stage-body iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff;transition:opacity .35s}
+.stage-body.fade iframe{opacity:0}
+.stage-body iframe[hidden]{display:none}
+.stage-ph{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:24px;text-align:center;color:var(--muted);font-size:13px;line-height:1.5}
+.stage-ph[hidden]{display:none}
+.stage-ph svg{width:44px;height:44px;stroke:#475569;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.stage-ph b{font-size:15px;color:#fff}
+
+.strip-title{margin:18px 2px 10px;font-size:12px;font-weight:800;letter-spacing:.2em;color:var(--muted)}
+.strip{position:relative;display:flex;gap:12px;overflow-x:auto;margin:0 -16px;padding:8px 16px 16px;scroll-snap-type:x proximity;scrollbar-width:none}
+.strip::-webkit-scrollbar{display:none}
+.dcard{--ac:#22c55e;--acb:rgba(34,197,94,.4);position:relative;flex:0 0 152px;scroll-snap-align:center;padding:10px;border-radius:20px;background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(11,17,32,.97) 60%);border:1px solid var(--line);cursor:pointer;transition:transform .3s cubic-bezier(.3,1.5,.5,1),border-color .25s,box-shadow .25s}
+.dcard:active{transform:scale(.97)}
+.dcard.is-sel{transform:translateY(-4px) scale(1.03);border-color:var(--ac);box-shadow:0 0 28px var(--acb),0 10px 26px rgba(0,0,0,.4)}
+.d-name{margin-top:10px;font-size:13.5px;font-weight:800;color:#fff;transition:color .25s}
+.dcard.is-sel .d-name{color:var(--ac)}
+.d-tag{margin-top:2px;min-height:30px;font-size:11px;color:var(--muted);line-height:1.4}
+.soon{margin-top:4px;text-align:center;font-size:11.5px;color:var(--muted)}
+
+/* Selected design panel (above the bottom bar) */
+.selpanel{position:fixed;left:14px;right:14px;bottom:calc(92px + env(safe-area-inset-bottom,0px));z-index:49;max-width:612px;margin:0 auto;display:flex;align-items:center;gap:12px;padding:10px 12px 10px 10px;border-radius:22px;background:rgba(11,17,32,.95);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border:1px solid rgba(250,204,21,.4);box-shadow:0 14px 36px rgba(0,0,0,.6),0 0 26px rgba(250,204,21,.18);animation:slideUp .4s cubic-bezier(.3,1.3,.5,1)}
+.selpanel[hidden]{display:none}
+@keyframes slideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+.selpanel .thumb{flex:0 0 52px;width:52px;border-radius:10px}
+.sp-text{min-width:0;flex:1}
+.sp-text small{display:block;font-size:9px;font-weight:800;letter-spacing:.18em;color:var(--green)}
+.sp-text b{display:block;margin-top:2px;font-size:15px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sp-text span{display:block;margin-top:1px;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.buy-btn{flex:0 0 auto;padding:14px 26px;border-radius:14px;font-size:14px;font-weight:900;letter-spacing:.2em;color:#1a1400;background:linear-gradient(135deg,#fde047,#facc15 55%,#eab308);box-shadow:0 8px 24px rgba(250,204,21,.35),inset 0 1px 0 rgba(255,255,255,.35);transition:transform .15s}
+.buy-btn:active{transform:scale(.95)}
 
 /* ===== Preview modal ===== */
 .modal{position:fixed;inset:0;z-index:90;display:flex;flex-direction:column;background:#05070f;padding-top:env(safe-area-inset-top,0px)}
@@ -123,9 +163,10 @@ main{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:6
 .m-stage{position:relative;flex:1;overflow:hidden;background:#111}
 .m-stage iframe{position:absolute;top:0;left:0;border:0;background:#fff;transform-origin:0 0}
 .m-bottom{padding:12px 14px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);background:rgba(11,17,32,.95)}
+.btn-sel-on{background:linear-gradient(135deg,#22c55e,#06b6d4)!important;box-shadow:0 8px 22px rgba(34,197,94,.35)!important}
 
-/* ===== Toast ===== */
-.toast{position:fixed;left:50%;bottom:calc(96px + env(safe-area-inset-bottom,0px));z-index:95;max-width:90%;padding:12px 18px;border-radius:14px;font-size:13px;font-weight:600;color:#fff;background:rgba(20,28,50,.97);border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.5);transform:translate(-50%,20px);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;text-align:center}
+/* ===== Toast (top) ===== */
+.toast{position:fixed;left:50%;top:calc(70px + env(safe-area-inset-top,0px));z-index:95;max-width:90%;padding:12px 18px;border-radius:14px;font-size:13px;font-weight:600;color:#fff;background:rgba(20,28,50,.97);border:1px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.5);transform:translate(-50%,-16px);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;text-align:center}
 .toast.show{opacity:1;transform:translate(-50%,0)}
 .toast.ok{border-color:rgba(34,197,94,.55)}
 .toast.err{border-color:rgba(248,113,113,.55)}
@@ -186,6 +227,7 @@ main{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:6
 .tl-step span{display:block;margin-top:2px;font-size:11.5px;color:var(--muted)}
 
 .act-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.btn-sm{width:100%;padding:11px 8px;border-radius:12px;font-size:11px;font-weight:800;letter-spacing:.1em}
 .btn-red{background:linear-gradient(135deg,#f87171,#ef4444)!important;box-shadow:0 8px 20px rgba(239,68,68,.3)!important}
 .btn-amber{background:linear-gradient(135deg,#fbbf24,#f59e0b)!important;color:#1a1000!important;box-shadow:0 8px 20px rgba(245,158,11,.3)!important}
 .btn-gray{background:linear-gradient(135deg,#64748b,#475569)!important;box-shadow:none!important}
@@ -194,7 +236,7 @@ main{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:6
 .refresh-btn svg{width:18px;height:18px;stroke:#93c5fd;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .refresh-btn:active svg{transform:rotate(180deg);transition:transform .3s}
 
-/* ===== ACCOUNT (unchanged) ===== */
+/* ===== ACCOUNT ===== */
 .profile-row{display:flex;align-items:center;gap:12px;padding:0 2px 2px}
 .avatar{position:relative;flex:0 0 auto;width:58px;height:58px;border-radius:50%;padding:2.5px;background:conic-gradient(from 160deg,var(--blue),var(--violet),var(--yellow),var(--blue));box-shadow:0 0 18px rgba(99,102,241,.45)}
 .avatar-inner{position:relative;width:100%;height:100%;border-radius:50%;overflow:hidden;background:var(--card);display:grid;place-items:center}
@@ -368,14 +410,17 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
 @media (max-width:360px){
   .bal-num{font-size:34px}
   .avatar{width:52px;height:52px}
+  .welcome .avatar{width:56px;height:56px}
   .p-name{font-size:15px}
   .acc-tag{display:none}
   .stat-tile{padding:16px 8px}
   .tab-pill{font-size:11px}
   .btn-primary{padding:13px 14px}
-  .gallery{gap:10px}
-  .perk span{display:none}
   .brand-name{font-size:15px}
+  .fcard .thumb{flex-basis:92px;width:92px}
+  .dcard{flex-basis:140px}
+  .buy-btn{padding:13px 18px;letter-spacing:.14em}
+  .selpanel{gap:10px}
 }
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition-duration:.01s!important}}
 </style>
@@ -403,57 +448,61 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
 
   <!-- ===================== HOME ===================== -->
   <section class="view active" id="home">
-    <div class="hero">
+    <div class="welcome">
+      <div>
+        <div class="w-hey" id="wHey">Hey, <b>there</b><span class="wave">&#128075;</span></div>
+        <h1 class="w-title">Welcome to <b>GDX STORE</b></h1>
+      </div>
+      <div class="avatar">
+        <div class="avatar-inner">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+          <img id="hImg" alt="Profile picture" referrerpolicy="no-referrer">
+        </div>
+      </div>
+    </div>
+
+    <div class="hero2">
       <div class="hero-badge">PREMIUM DIGITAL PLATFORM</div>
-      <h1>WELCOME TO <span>GDX STORE</span></h1>
-      <p class="lead">Your all-in-one digital services marketplace, right inside Telegram.</p>
-      <p class="desc">Create professional landing pages, order digital services and manage everything from one smooth, secure dashboard. No coding. No hassle. Just results.</p>
+      <h2>Let&rsquo;s create <span>something amazing.</span></h2>
+      <p class="desc">Launch professional landing pages, order digital services and track everything from one smooth, secure dashboard. Fast, simple and built for beginners.</p>
       <div class="hero-actions">
-        <button class="btn-primary" type="button" data-go="landing">LANDING PAGES</button>
-        <button class="btn-ghost" type="button" id="exploreBtn">OUR SERVICES</button>
+        <button class="btn-primary" type="button" data-go="landing">BROWSE DESIGNS</button>
+        <button class="btn-ghost" type="button" data-go="orders">MY ORDERS</button>
       </div>
     </div>
 
-    <div class="perks">
-      <div class="perk">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v5c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/></svg>
-        <b>Secure Login</b><span>Verified with your Telegram account</span>
-      </div>
-      <div class="perk">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="6" width="19" height="13" rx="3"/><path d="M2.5 10h19"/><circle cx="17" cy="14.5" r="1.2"/></svg>
-        <b>Smart Wallet</b><span>Gift codes and wallet refunds</span>
-      </div>
-      <div class="perk">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>
-        <b>Order Tracking</b><span>Live status of every order</span>
-      </div>
-    </div>
-
-    <div class="sec-h" id="servicesAnchor">OUR BEST SERVICES</div>
-    <p class="sec-p">Premium landing page designs for your <b>JOIN OUR COMMUNITY</b> page. Tap Preview to see the complete page.</p>
-    <div class="gallery" id="homeGallery"></div>
-
-    <div class="cta-card">
-      <b>Ready to build your community page?</b>
-      <span>Pick your favourite design and save it in one tap.</span>
-      <button class="btn-primary" type="button" data-go="landing">CHOOSE YOUR DESIGN</button>
-    </div>
+    <div class="sec-h">OUR BEST SERVICES</div>
+    <p class="sec-p">Featured landing page designs for your <b>JOIN OUR COMMUNITY</b> page. Tap Preview to view one in detail.</p>
+    <div class="feat-list" id="homeGallery"></div>
+    <button class="btn-ghost wide" type="button" data-go="landing">VIEW ALL LANDING PAGES</button>
   </section>
 
   <!-- ===================== LANDING PAGES ===================== -->
   <section class="view" id="landing">
-    <div class="hero" style="padding:22px 16px 18px">
+    <div class="lp-head">
       <div class="hero-badge">LANDING PAGE DESIGNS</div>
-      <h1 style="font-size:clamp(26px,8vw,34px);letter-spacing:.1em">JOIN OUR COMMUNITY</h1>
-      <p class="desc" style="margin-top:0">Choose one of four premium designs. Preview the full responsive page, then select the one you love. You can change it anytime.</p>
+      <h1>JOIN OUR COMMUNITY</h1>
+      <p>Tap a design to preview it and choose it. You can change your choice anytime.</p>
     </div>
 
-    <div class="sel-banner" id="selBanner">
-      <div class="sel-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l5 5 9-10"/></svg></div>
-      <div class="sel-text"><b id="selTitle">No design selected yet</b><span id="selSub">Preview a design and tap Select Design.</span></div>
+    <div class="stage">
+      <div class="stage-top">
+        <div class="dots"><i></i><i></i><i></i></div>
+        <div class="stage-name" id="stageName">LIVE PREVIEW</div>
+        <button class="stage-full" id="stageFull" type="button">FULL SCREEN</button>
+      </div>
+      <div class="stage-body" id="stageBody">
+        <iframe id="stageFrame" sandbox title="Selected landing page preview" hidden></iframe>
+        <div class="stage-ph" id="stagePh">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 14h8"/></svg>
+          <b>No design selected</b>
+          <span>Tap any design below to see the complete page here.</span>
+        </div>
+      </div>
     </div>
 
-    <div class="gallery" id="lpGallery"></div>
+    <div class="strip-title">CHOOSE A DESIGN</div>
+    <div class="strip" id="lpGallery"></div>
     <div class="soon">Editing, publishing and your own page link are coming next.</div>
   </section>
 
@@ -481,7 +530,6 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
 
       <div class="list" id="ordList"></div>
 
-      <!-- Admin only -->
       <div class="panel" id="ordAdmin" hidden>
         <div class="panel-head">
           <div class="panel-ico ico-admin">
@@ -707,13 +755,24 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
   </section>
 </main>
 
-<!-- Landing page preview (full screen) -->
+<!-- Selected design panel (Landing Pages only) -->
+<div class="selpanel" id="selPanel" hidden>
+  <div class="thumb"><iframe id="spFrame" sandbox tabindex="-1" aria-hidden="true" title="Selected design thumbnail"></iframe></div>
+  <div class="sp-text">
+    <small>&#10003; SELECTED DESIGN</small>
+    <b id="spName">Design</b>
+    <span id="spTag"></span>
+  </div>
+  <button class="buy-btn" id="buyBtn" type="button">BUY</button>
+</div>
+
+<!-- Full screen preview -->
 <div class="modal" id="modal" hidden>
   <div class="m-top">
     <button class="m-close" id="mClose" type="button" aria-label="Close preview">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
-    <div class="m-title"><b id="mName">Preview</b><small>LIVE PREVIEW</small></div>
+    <div class="m-title"><b id="mName">Preview</b><small>FULL PREVIEW</small></div>
     <div class="m-modes">
       <button class="m-mode on" type="button" data-mode="mobile" aria-label="Mobile view">
         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>
@@ -724,7 +783,7 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     </div>
   </div>
   <div class="m-stage" id="mStage"><iframe id="mFrame" sandbox title="Landing page preview"></iframe></div>
-  <div class="m-bottom"><button class="btn-primary btn-sm" id="mSelect" type="button" style="padding:15px;font-size:13px">SELECT DESIGN</button></div>
+  <div class="m-bottom"><button class="btn-primary btn-sm" id="mSelect" type="button" style="padding:15px;font-size:13px">USE THIS DESIGN</button></div>
 </div>
 
 <div class="toast" id="toast" role="status"></div>
@@ -801,7 +860,8 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     debit:     ['M12 19V5', 'M6 11l6-6 6 6'],
     processing:['M21 12a9 9 0 11-3-6.7', 'M21 4v5h-5'],
     cancelled: ['M12 3a9 9 0 100 18 9 9 0 000-18z', 'M5.6 5.6l12.8 12.8'],
-    refunded:  ['M3 7v6h6', 'M3 13a9 9 0 105.6-8.3']
+    refunded:  ['M3 7v6h6', 'M3 13a9 9 0 105.6-8.3'],
+    eye:       ['M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z', 'M12 9a3 3 0 100 6 3 3 0 000-6z']
   };
 
   function formatINR(n){
@@ -852,6 +912,13 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     accError.hidden = false;
   }
 
+  function setAvatar(img, url){
+    if (!url) return;
+    img.onload = function(){ img.classList.add('show'); };
+    img.onerror = function(){ img.classList.remove('show'); };
+    img.src = url;
+  }
+
   // ---------- Navigation + Telegram back button ----------
   var state = { view: 'home', acc: 'main', ord: 'list', modal: false };
   var ids = ['home','landing','orders','account'];
@@ -898,6 +965,8 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     if (id === 'account') showAcc('main');
     if (id === 'orders') { showOrders('list'); loadOrders(); }
     if (id === 'landing' || id === 'home') layoutThumbs();
+    updatePanel();
+    if (id === 'landing') setTimeout(scrollStripToSelected, 80);
     refreshBack();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -908,68 +977,98 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     b.addEventListener('click', function(){ showAcc('main'); });
   });
   document.getElementById('ordBack').addEventListener('click', function(){ showOrders('list'); });
-  document.getElementById('exploreBtn').addEventListener('click', function(){
-    document.getElementById('servicesAnchor').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  });
 
   // =====================================================
-  //  LANDING PAGE DESIGNS (gallery, preview, select)
+  //  LANDING PAGE DESIGNS
+  //  One data source (/api/landing/templates) + one card component,
+  //  used by BOTH the Home page and the Landing Pages section.
   // =====================================================
   var designs = [];
   var selectedKey = null;
+  var touched = false;
   var modalKey = null;
   var modalMode = 'mobile';
 
-  function designName(key){
-    for (var i = 0; i < designs.length; i++) if (designs[i].key === key) return designs[i].name;
-    return key;
-  }
+  var ACCENT = {
+    'premium-dark':    ['#d4af37', 'rgba(212,175,55,.45)'],
+    'modern-gradient': ['#ec4899', 'rgba(236,72,153,.45)'],
+    'minimal-premium': ['#e5e7eb', 'rgba(229,231,235,.35)'],
+    'neon-tech':       ['#00e5ff', 'rgba(0,229,255,.45)']
+  };
+  function accentOf(key){ return ACCENT[key] || ['#3b82f6', 'rgba(59,130,246,.4)']; }
 
+  var landingView = document.getElementById('landing');
+  var stageBody = document.getElementById('stageBody');
+  var stageFrame = document.getElementById('stageFrame');
+  var stagePh = document.getElementById('stagePh');
+  var stageName = document.getElementById('stageName');
+  var strip = document.getElementById('lpGallery');
+  var selPanel = document.getElementById('selPanel');
+  var spFrame = document.getElementById('spFrame');
+
+  function designOf(key){
+    for (var i = 0; i < designs.length; i++) if (designs[i].key === key) return designs[i];
+    return null;
+  }
+  function designName(key){ var d = designOf(key); return d ? d.name : key; }
+
+  function previewUrl(key){ return '/preview/landing/' + encodeURIComponent(key); }
+
+  // Shared card component. mode: 'home' (featured row) or 'lp' (gallery strip)
   function makeCard(t, mode){
-    var card = el('div', 'dcard');
+    var a = accentOf(t.key);
+    var card = el('div', mode === 'home' ? 'fcard' : 'dcard');
     card.dataset.key = t.key;
+    card.style.setProperty('--ac', a[0]);
+    card.style.setProperty('--acb', a[1]);
 
     var thumb = el('div', 'thumb');
     var fr = document.createElement('iframe');
-    fr.src = '/preview/landing/' + encodeURIComponent(t.key);
+    fr.src = previewUrl(t.key);
     fr.loading = 'lazy';
     fr.tabIndex = -1;
     fr.setAttribute('sandbox', '');
     fr.setAttribute('title', t.name + ' preview');
     fr.setAttribute('aria-hidden', 'true');
     thumb.appendChild(fr);
-    thumb.addEventListener('click', function(){ openPreview(t.key); });
+    var chk = el('div', 'check');
+    chk.appendChild(svgIcon(ICON.completed));
+    thumb.appendChild(chk);
     card.appendChild(thumb);
 
-    card.appendChild(el('div', 'sel-tag', 'SELECTED'));
-    card.appendChild(el('div', 'd-name', t.name));
-    card.appendChild(el('div', 'd-tag', t.tagline));
-
-    var acts = el('div', 'd-actions');
-    var pv = el('button', 'btn-sm btn-outline', 'PREVIEW');
-    pv.type = 'button';
-    pv.addEventListener('click', function(){ openPreview(t.key); });
-    acts.appendChild(pv);
-
-    if (mode === 'lp') {
-      var sel = el('button', 'btn-sm btn-primary', 'SELECT DESIGN');
-      sel.type = 'button';
-      sel.dataset.sel = t.key;
-      sel.addEventListener('click', function(){ selectDesign(t.key); });
-      acts.appendChild(sel);
+    if (mode === 'home') {
+      var body = el('div', 'f-body');
+      body.appendChild(el('span', 'f-chip', 'COMMUNITY PAGE'));
+      body.appendChild(el('div', 'f-name', t.name));
+      body.appendChild(el('div', 'f-desc', t.tagline));
+      var btn = el('button', 'f-btn');
+      btn.type = 'button';
+      btn.appendChild(svgIcon(ICON.eye));
+      btn.appendChild(document.createTextNode('PREVIEW'));
+      btn.addEventListener('click', function(e){ e.stopPropagation(); previewFromHome(t.key); });
+      body.appendChild(btn);
+      card.appendChild(body);
+      card.addEventListener('click', function(){ previewFromHome(t.key); });
+    } else {
+      card.setAttribute('role', 'button');
+      card.tabIndex = 0;
+      card.appendChild(el('div', 'd-name', t.name));
+      card.appendChild(el('div', 'd-tag', t.tagline));
+      card.addEventListener('click', function(){ chooseDesign(t.key); });
+      card.addEventListener('keydown', function(e){
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); chooseDesign(t.key); }
+      });
     }
-    card.appendChild(acts);
     return card;
   }
 
   function buildGalleries(){
     var home = document.getElementById('homeGallery');
-    var lp = document.getElementById('lpGallery');
     home.textContent = '';
-    lp.textContent = '';
+    strip.textContent = '';
     designs.forEach(function(t){
       home.appendChild(makeCard(t, 'home'));
-      lp.appendChild(makeCard(t, 'lp'));
+      strip.appendChild(makeCard(t, 'lp'));
     });
     applySelection();
     layoutThumbs();
@@ -978,32 +1077,94 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
   function layoutThumbs(){
     document.querySelectorAll('.thumb').forEach(function(t){
       var w = t.clientWidth;
-      if (!w) return;
-      t.firstChild.style.transform = 'scale(' + (w / 390) + ')';
+      var f = t.querySelector('iframe');
+      if (!w || !f) return;
+      f.style.transform = 'scale(' + (w / 390) + ')';
     });
   }
   window.addEventListener('resize', function(){ layoutThumbs(); if (state.modal) layoutModal(); });
 
-  function applySelection(){
-    document.querySelectorAll('.dcard').forEach(function(c){
-      c.classList.toggle('is-sel', c.dataset.key === selectedKey);
-    });
-    document.querySelectorAll('[data-sel]').forEach(function(b){
-      var on = b.dataset.sel === selectedKey;
-      b.textContent = on ? 'SELECTED \u2713' : 'SELECT DESIGN';
-      b.classList.toggle('btn-sel-on', on);
-    });
-    var banner = document.getElementById('selBanner');
-    if (selectedKey) {
-      banner.classList.add('on');
-      document.getElementById('selTitle').textContent = 'Selected: ' + designName(selectedKey);
-      document.getElementById('selSub').textContent = 'Tap Select Design on any other design to change it.';
-    } else {
-      banner.classList.remove('on');
-      document.getElementById('selTitle').textContent = 'No design selected yet';
-      document.getElementById('selSub').textContent = 'Preview a design and tap Select Design.';
+  function scrollStripToSelected(){
+    var c = strip.querySelector('.dcard.is-sel');
+    if (!c || !strip.clientWidth) return;
+    strip.scrollTo({ left: c.offsetLeft - (strip.clientWidth - c.offsetWidth) / 2, behavior: 'smooth' });
+  }
+
+  function updateStage(){
+    if (!selectedKey) {
+      stageFrame.hidden = true;
+      stagePh.hidden = false;
+      stageName.textContent = 'LIVE PREVIEW';
+      return;
     }
+    stagePh.hidden = true;
+    stageFrame.hidden = false;
+    stageName.textContent = designName(selectedKey).toUpperCase();
+    if (stageFrame.dataset.key !== selectedKey) {
+      stageFrame.dataset.key = selectedKey;
+      stageBody.classList.add('fade');
+      stageFrame.src = previewUrl(selectedKey);
+      setTimeout(function(){ stageBody.classList.remove('fade'); }, 900);
+    }
+  }
+  stageFrame.addEventListener('load', function(){ stageBody.classList.remove('fade'); });
+
+  function updatePanel(){
+    var show = !!selectedKey && state.view === 'landing';
+    selPanel.hidden = !show;
+    landingView.classList.toggle('has-sel', show);
+    if (selectedKey) {
+      var d = designOf(selectedKey);
+      document.getElementById('spName').textContent = d ? d.name : selectedKey;
+      document.getElementById('spTag').textContent = d ? d.tagline : '';
+      if (spFrame.dataset.key !== selectedKey) {
+        spFrame.dataset.key = selectedKey;
+        spFrame.src = previewUrl(selectedKey);
+      }
+      if (show) layoutThumbs();
+    }
+  }
+
+  function applySelection(){
+    document.querySelectorAll('.dcard, .fcard').forEach(function(c){
+      var on = c.dataset.key === selectedKey;
+      c.classList.toggle('is-sel', on);
+      if (c.classList.contains('dcard')) c.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    updateStage();
+    updatePanel();
     updateModalSelect();
+    if (state.view === 'landing') scrollStripToSelected();
+  }
+
+  // The design is chosen by tapping its card (there is no Select button).
+  var saveTimer = null;
+  function queueSave(key){
+    if (!hasAuth) return;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(function(){
+      api('/api/landing/select', { method: 'POST', body: { template: key } }).catch(function(e){
+        toast('Could not save your design. ' + friendlyError(e), 'err');
+      });
+    }, 400);
+  }
+
+  function setSelected(key){
+    touched = true;
+    selectedKey = key;
+    applySelection();
+    queueSave(key);
+  }
+
+  function chooseDesign(key){
+    if (key === selectedKey) { openPreview(key); return; }  // tapping the chosen one again = full screen view
+    setSelected(key);
+  }
+
+  // Home -> PREVIEW: open the Landing Pages section with that design shown in detail
+  function previewFromHome(key){
+    go('landing');
+    setSelected(key);
   }
 
   function loadDesigns(){
@@ -1015,7 +1176,7 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
         var box = document.getElementById(id);
         box.textContent = '';
         var msg = emptyBox('Could not load designs', 'Please check your internet and reopen the app.');
-        msg.style.gridColumn = '1 / -1';
+        msg.style.flex = '1 0 100%';
         box.appendChild(msg);
       });
     });
@@ -1024,27 +1185,16 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
   function loadSelection(){
     if (!hasAuth) return;
     api('/api/landing/selection').then(function(d){
+      if (touched) return;           // do not override a choice the user already made
       selectedKey = d.selected || null;
       applySelection();
     }).catch(function(){});
   }
 
-  var selecting = false;
-  function selectDesign(key){
-    if (key === selectedKey) { toast('This design is already selected.', 'ok'); return; }
-    if (!hasAuth) { toast('Please open GDX STORE inside Telegram.', 'err'); return; }
-    if (selecting) return;
-    selecting = true;
-    api('/api/landing/select', { method: 'POST', body: { template: key } }).then(function(d){
-      selectedKey = d.selected;
-      applySelection();
-      toast('Design saved: ' + designName(selectedKey), 'ok');
-    }).catch(function(e){
-      toast(friendlyError(e), 'err');
-    }).then(function(){ selecting = false; });
-  }
+  // BUY: placeholder only. The purchase flow will be built later.
+  document.getElementById('buyBtn').addEventListener('click', function(){});
 
-  // ----- Preview modal -----
+  // ----- Full screen preview -----
   var modal = document.getElementById('modal');
   var mStage = document.getElementById('mStage');
   var mFrame = document.getElementById('mFrame');
@@ -1072,7 +1222,7 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
   function updateModalSelect(){
     if (!modalKey) return;
     var on = modalKey === selectedKey;
-    mSelect.textContent = on ? 'SELECTED \u2713' : 'SELECT THIS DESIGN';
+    mSelect.textContent = on ? 'SELECTED \u2713' : 'USE THIS DESIGN';
     mSelect.classList.toggle('btn-sel-on', on);
   }
 
@@ -1090,7 +1240,7 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
   function openPreview(key){
     modalKey = key;
     document.getElementById('mName').textContent = designName(key);
-    mFrame.src = '/preview/landing/' + encodeURIComponent(key);
+    mFrame.src = previewUrl(key);
     modal.hidden = false;
     state.modal = true;
     document.body.style.overflow = 'hidden';
@@ -1109,7 +1259,15 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
   }
 
   document.getElementById('mClose').addEventListener('click', closeModal);
-  mSelect.addEventListener('click', function(){ if (modalKey) selectDesign(modalKey); });
+  mSelect.addEventListener('click', function(){
+    var key = modalKey;
+    closeModal();
+    if (key && key !== selectedKey) setSelected(key);
+  });
+  document.getElementById('stageFull').addEventListener('click', function(){
+    if (selectedKey) openPreview(selectedKey);
+    else toast('Tap a design first.', '');
+  });
 
   // =====================================================
   //  ORDERS
@@ -1244,7 +1402,6 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     var s = stKey(o.status);
     ordDetail.textContent = '';
 
-    // Status banner
     var banner = el('div', 'obanner st-' + s);
     var ico = el('div', 'o-ico');
     ico.appendChild(svgIcon(ICON[s]));
@@ -1256,7 +1413,6 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     banner.appendChild(el('div', 'ob-amt', '\u20B9' + formatINR(o.amount)));
     ordDetail.appendChild(banner);
 
-    // Information
     var info = el('div', 'dcard-box');
     info.appendChild(el('div', 'box-title', 'ORDER INFORMATION'));
     var idWrap = el('span');
@@ -1276,7 +1432,6 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     if (o.note) info.appendChild(infoRow('Note', o.note));
     ordDetail.appendChild(info);
 
-    // Timeline
     var steps = [{ label: 'Order placed', date: o.createdAt, cls: 'done' }];
     if (s === 'pending') steps.push({ label: 'Waiting to be accepted', date: '', cls: 'current' });
     if (s === 'processing') steps.push({ label: 'Processing', date: o.updatedAt, cls: 'current' });
@@ -1299,7 +1454,6 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     tlBox.appendChild(tl);
     ordDetail.appendChild(tlBox);
 
-    // Payments linked to this order
     if (txns && txns.length) {
       var pBox = el('div', 'dcard-box');
       pBox.appendChild(el('div', 'box-title', 'PAYMENTS FOR THIS ORDER'));
@@ -1323,7 +1477,6 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
       ordDetail.appendChild(pBox);
     }
 
-    // Admin tools (the backend also checks admin on every call)
     if (isAdmin) {
       var aBox = el('div', 'dcard-box');
       aBox.appendChild(el('div', 'box-title', 'ADMIN: MANAGE THIS ORDER'));
@@ -1393,7 +1546,6 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     }).catch(function(e){ toast(friendlyError(e), 'err'); });
   }
 
-  // Admin: create test order
   var oaMsg = document.getElementById('oaMsg');
   var oaCreate = document.getElementById('oaCreate');
   oaCreate.addEventListener('click', function(){
@@ -1424,9 +1576,17 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
   });
 
   // =====================================================
-  //  ACCOUNT (unchanged features)
+  //  ACCOUNT + personalised Home greeting
   // =====================================================
   var profileCard = document.getElementById('profileCard');
+
+  function setGreeting(name){
+    var hey = document.getElementById('wHey');
+    hey.textContent = '';
+    hey.appendChild(document.createTextNode('Hey, '));
+    hey.appendChild(el('b', '', name || 'there'));
+    hey.appendChild(el('span', 'wave', '\uD83D\uDC4B'));
+  }
 
   function renderProfile(u){
     var fullName = [u.firstName, u.lastName].filter(Boolean).join(' ') || 'Telegram User';
@@ -1438,12 +1598,9 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     document.getElementById('adminPanel').hidden = !isAdmin;
     document.getElementById('ordAdmin').hidden = !isAdmin;
 
-    var img = document.getElementById('pImg');
-    if (u.photoUrl) {
-      img.onload = function(){ img.classList.add('show'); };
-      img.onerror = function(){ img.classList.remove('show'); };
-      img.src = u.photoUrl;
-    }
+    setGreeting(u.firstName || (u.username ? '@' + u.username : ''));
+    setAvatar(document.getElementById('pImg'), u.photoUrl);
+    setAvatar(document.getElementById('hImg'), u.photoUrl);
     profileCard.classList.remove('skeleton');
   }
 
@@ -1683,17 +1840,17 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
       sections: [
         { h: 'What is GDX STORE?', p: 'GDX STORE is a digital services platform inside Telegram. You can explore services, create landing pages, place orders and manage your wallet, all from one place.' },
         { h: 'How to use the dashboard', list: [
-          'Home gives you a quick overview.',
-          'Landing Page is where you choose and manage your landing page design.',
+          'Home gives you a quick overview and featured designs.',
+          'Landing Page is where you preview and choose your landing page design.',
           'Orders shows all your orders and their status.',
           'Account has your wallet, history, gift codes and support.',
           'Use the bar at the bottom to switch between these sections.'
         ] },
         { h: 'How to explore available services', p: 'Open the services section, browse the categories, and tap any service to see its description, features and price.' },
         { h: 'How to create landing pages', list: [
-          'Open the Landing Page tab and preview the available designs.',
-          'Tap Select Design on the one you like. You can change it anytime.',
-          'Editing, publishing and your own page link are coming soon.'
+          'Open the Landing Page tab and tap a design to preview it.',
+          'The design you tap becomes your selected design. You can change it anytime.',
+          'Buying, editing and publishing are coming soon.'
         ] },
         { h: 'How to place an order', list: [
           'Choose a service and tap the Order button.',
@@ -1796,6 +1953,7 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     loadSelection();
   }
 
+  setGreeting('');
   loadDesigns();
   loadAccount();
 })();
