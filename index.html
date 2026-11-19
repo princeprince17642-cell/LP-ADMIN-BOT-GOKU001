@@ -59,7 +59,7 @@ main{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:6
 .acc-sub{animation:in .3s ease}
 .acc-sub[hidden]{display:none}
 
-/* Account: compact profile row (sits just below the header, on the left) */
+/* Account: compact profile row */
 .profile-row{display:flex;align-items:center;gap:12px;padding:0 2px 2px}
 .avatar{position:relative;flex:0 0 auto;width:58px;height:58px;border-radius:50%;padding:2.5px;background:conic-gradient(from 160deg,var(--blue),var(--violet),var(--yellow),var(--blue));box-shadow:0 0 18px rgba(99,102,241,.45)}
 .avatar-inner{position:relative;width:100%;height:100%;border-radius:50%;overflow:hidden;background:var(--card);display:grid;place-items:center}
@@ -84,7 +84,7 @@ main{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:6
 .acc-error{margin-top:14px;padding:14px 16px;border-radius:14px;border:1px solid rgba(248,113,113,.35);background:rgba(248,113,113,.08);color:#fca5a5;font-size:13px;line-height:1.5}
 .acc-error[hidden]{display:none}
 
-/* Account: balance card (blue-violet) + deposit button */
+/* Balance card + deposit button */
 .balance-card{position:relative;margin-top:14px;padding:20px;border-radius:22px;overflow:hidden;background:linear-gradient(135deg,#2563eb 0%,#5b50f0 52%,#8b5cf6 100%);border:1px solid rgba(255,255,255,.18);box-shadow:0 12px 34px rgba(91,80,240,.38),inset 0 1px 0 rgba(255,255,255,.22)}
 .balance-card::after{content:"";position:absolute;right:-50px;top:-60px;width:190px;height:190px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.22),transparent 70%);pointer-events:none}
 .bal-label{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.18em;color:rgba(255,255,255,.78)}
@@ -99,7 +99,7 @@ main{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:6
 .deposit-btn svg{width:20px;height:20px;stroke:#1a1400;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .deposit-btn:active{transform:scale(.98);box-shadow:0 4px 16px rgba(250,204,21,.22)}
 
-/* Account: tappable tiles */
+/* Tappable tiles */
 .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
 .stat-tile{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:18px 10px;border-radius:20px;background:linear-gradient(160deg,rgba(255,255,255,.045),rgba(11,17,32,.97) 60%);border:1px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.02);transition:transform .15s,border-color .2s}
 .stat-tile:active{transform:scale(.97)}
@@ -113,10 +113,67 @@ main{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:6
 .tile-count{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--yellow)}
 .skeleton-tile .tile-count{color:transparent;background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.10),rgba(255,255,255,.04));background-size:200% 100%;animation:shimmer 1.4s linear infinite;border-radius:6px}
 
-/* Sub pages: Deposit History + Transactions */
+/* Panels: gift code, customer care, admin */
+.panel{margin-top:14px;padding:18px;border-radius:22px;background:linear-gradient(160deg,rgba(255,255,255,.045),rgba(11,17,32,.97) 60%);border:1px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.02)}
+.panel[hidden]{display:none}
+.panel-head{display:flex;align-items:center;gap:12px}
+.panel-ico{flex:0 0 auto;width:44px;height:44px;border-radius:14px;display:grid;place-items:center}
+.panel-ico svg{width:22px;height:22px;stroke:#fff;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.ico-gift{background:linear-gradient(145deg,#ec4899,#8b5cf6);box-shadow:0 0 18px rgba(236,72,153,.4)}
+.ico-support{background:linear-gradient(145deg,#22c55e,#06b6d4);box-shadow:0 0 18px rgba(34,197,94,.35)}
+.ico-admin{background:linear-gradient(145deg,#facc15,#f59e0b);box-shadow:0 0 18px rgba(250,204,21,.4)}
+.ico-admin svg{stroke:#1a1400}
+.ico-guide{background:linear-gradient(145deg,#3b82f6,#06b6d4)}
+.ico-refund{background:linear-gradient(145deg,#f59e0b,#ef4444)}
+.ico-about{background:linear-gradient(145deg,#8b5cf6,#6366f1)}
+.panel-title{font-size:14px;font-weight:800;letter-spacing:.12em;color:#fff}
+.panel-sub{margin-top:3px;font-size:12px;color:var(--muted);line-height:1.4}
+
+.input-row{display:flex;gap:10px;margin-top:14px}
+.field{flex:1;min-width:0;width:100%;padding:13px 14px;border-radius:14px;border:1px solid var(--line);background:rgba(7,9,19,.7);color:#fff;font:inherit;font-size:14px;letter-spacing:.06em;outline:none;transition:border-color .2s,box-shadow .2s}
+.field::placeholder{color:#5b6788;letter-spacing:.02em}
+.field:focus{border-color:rgba(139,92,246,.7);box-shadow:0 0 0 3px rgba(139,92,246,.18)}
+.btn-primary{flex:0 0 auto;padding:13px 20px;border-radius:14px;font-size:13px;font-weight:800;letter-spacing:.14em;color:#fff;background:linear-gradient(135deg,#6366f1,#8b5cf6);box-shadow:0 8px 22px rgba(99,102,241,.4);transition:transform .15s,opacity .2s}
+.btn-primary:active{transform:scale(.97)}
+.btn-primary:disabled{opacity:.55;cursor:default}
+.btn-wide{display:block;width:100%;margin-top:14px}
+.btn-green{background:linear-gradient(135deg,#22c55e,#06b6d4);box-shadow:0 8px 22px rgba(34,197,94,.35)}
+.btn-gold{color:#1a1400;background:linear-gradient(135deg,#fde047,#facc15 55%,#eab308);box-shadow:0 8px 22px rgba(250,204,21,.3)}
+.admin-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.admin-fields .full{grid-column:1 / -1}
+
+.msg{margin-top:10px;padding:10px 12px;border-radius:12px;font-size:12.5px;line-height:1.45}
+.msg[hidden]{display:none}
+.msg.ok{color:#86efac;background:rgba(34,197,94,.10);border:1px solid rgba(34,197,94,.3)}
+.msg.err{color:#fca5a5;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.3)}
+
+/* Statistics */
+.sec-title{margin:24px 2px 10px;font-size:12px;font-weight:800;letter-spacing:.2em;color:var(--muted)}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.st{padding:14px;border-radius:18px;background:linear-gradient(160deg,rgba(255,255,255,.045),rgba(11,17,32,.97) 60%);border:1px solid var(--line)}
+.st-label{font-size:10px;font-weight:700;letter-spacing:.14em;color:var(--muted)}
+.st-val{margin-top:6px;font-size:17px;font-weight:800;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st.c-blue .st-val{color:#60a5fa}
+.st.c-gold .st-val{color:#fde047}
+.st.c-pink .st-val{color:#f472b6}
+.st.c-violet .st-val{color:#a78bfa}
+.st.c-green .st-val{color:#4ade80}
+.st.c-red .st-val{color:#fb923c}
+.skeleton-st .st-val{color:transparent;background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.10),rgba(255,255,255,.04));background-size:200% 100%;animation:shimmer 1.4s linear infinite;border-radius:6px}
+
+/* Menu rows */
+.menu{display:flex;flex-direction:column;gap:10px}
+.menu-item{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border-radius:18px;text-align:left;background:linear-gradient(160deg,rgba(255,255,255,.045),rgba(11,17,32,.97) 60%);border:1px solid var(--line);transition:transform .15s}
+.menu-item:active{transform:scale(.98)}
+.menu-item .panel-ico{width:40px;height:40px;border-radius:12px}
+.menu-text{flex:1;font-size:14px;font-weight:700;color:#fff;letter-spacing:.03em}
+.chev{width:18px;height:18px;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* Sub pages */
 .sub-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
 .sub-title{display:flex;align-items:center;gap:10px;font-size:19px;font-weight:800;color:#fff;min-width:0}
 .sub-title svg{width:22px;height:22px;stroke:#a78bfa;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
+.ico-wrap{display:flex}
 .back-btn{display:flex;align-items:center;gap:8px;flex:0 0 auto;padding:6px 12px 6px 6px;border-radius:999px;border:1px solid var(--line);background:rgba(11,17,32,.9);transition:transform .15s}
 .back-btn:active{transform:scale(.96)}
 .back-ico{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#3b82f6,#8b5cf6)}
@@ -162,6 +219,15 @@ main{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:6
 .empty b{font-size:17px;color:#fff}
 .empty span{font-size:13px;color:var(--muted)}
 
+/* Info pages (guide, refund policy, about) */
+.info-card{padding:20px 18px;border-radius:22px;background:linear-gradient(160deg,rgba(255,255,255,.045),rgba(11,17,32,.97) 60%);border:1px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,.35)}
+.info-sec{margin-bottom:20px}
+.info-sec:last-child{margin-bottom:0}
+.info-sec h3{font-size:15px;color:#fff;margin-bottom:6px}
+.info-sec p{font-size:13.5px;color:#b6c0dc;line-height:1.65}
+.info-sec ul,.info-sec ol{padding-left:20px;margin-top:6px;font-size:13.5px;color:#b6c0dc;line-height:1.65}
+.info-sec li{margin-bottom:7px}
+
 /* Floating bottom nav */
 nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:50;max-width:612px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);padding:6px;border-radius:24px;background:rgba(11,17,32,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid var(--line);box-shadow:0 10px 34px rgba(0,0,0,.55),0 0 26px rgba(59,130,246,.16)}
 .pill{position:absolute;top:6px;bottom:6px;left:6px;width:calc((100% - 12px)/4);border-radius:18px;background:linear-gradient(to bottom,rgba(59,130,246,.28),rgba(59,130,246,.08));border:1px solid rgba(59,130,246,.45);box-shadow:0 0 20px rgba(59,130,246,.4);transition:transform .4s cubic-bezier(.4,.1,.2,1);pointer-events:none}
@@ -178,6 +244,7 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
   .acc-tag{display:none}
   .stat-tile{padding:16px 8px}
   .tab-pill{font-size:11px}
+  .btn-primary{padding:13px 14px}
 }
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition-duration:.01s!important}}
 </style>
@@ -263,6 +330,90 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
         </button>
       </div>
 
+      <!-- Gift code -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-ico ico-gift">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12v9H4v-9"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/></svg>
+          </div>
+          <div>
+            <div class="panel-title">GIFT CODE</div>
+            <div class="panel-sub">Have a gift code? Enter it here to add money to your wallet.</div>
+          </div>
+        </div>
+        <div class="input-row">
+          <input class="field" id="giftInput" type="text" placeholder="Enter Gift Code" maxlength="40" autocomplete="off" autocapitalize="characters" spellcheck="false">
+          <button class="btn-primary" id="claimBtn" type="button">CLAIM</button>
+        </div>
+        <div class="msg" id="giftMsg" hidden></div>
+      </div>
+
+      <!-- Customer care -->
+      <div class="panel">
+        <div class="panel-head">
+          <div class="panel-ico ico-support">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 14v-2a9 9 0 0118 0v2"/><path d="M3 14a2 2 0 012-2h1v6H5a2 2 0 01-2-2z"/><path d="M21 14a2 2 0 00-2-2h-1v6h1a2 2 0 002-2z"/><path d="M18 18v1a3 3 0 01-3 3h-3"/></svg>
+          </div>
+          <div>
+            <div class="panel-title">CUSTOMER CARE</div>
+            <div class="panel-sub">Need help with an order, deposit or refund? Our support team is here for you.</div>
+          </div>
+        </div>
+        <button class="btn-primary btn-green btn-wide" id="supportBtn" type="button">CONTACT SUPPORT</button>
+        <div class="msg" id="supportMsg" hidden></div>
+      </div>
+
+      <!-- Statistics -->
+      <div class="sec-title">YOUR STATISTICS</div>
+      <div class="stats skeleton-st" id="statsBox">
+        <div class="st c-blue"><div class="st-label">USERNAME</div><div class="st-val" id="stUser">--</div></div>
+        <div class="st c-gold"><div class="st-label">AVAILABLE BALANCE</div><div class="st-val" id="stBalance">--</div></div>
+        <div class="st c-pink"><div class="st-label">TOTAL BONUS</div><div class="st-val" id="stBonus">--</div></div>
+        <div class="st c-violet"><div class="st-label">TOTAL ORDERS</div><div class="st-val" id="stOrders">--</div></div>
+        <div class="st c-green"><div class="st-label">TOTAL DEPOSIT</div><div class="st-val" id="stDeposit">--</div></div>
+        <div class="st c-red"><div class="st-label">TOTAL SPENT</div><div class="st-val" id="stSpent">--</div></div>
+      </div>
+
+      <!-- Info menu -->
+      <div class="sec-title">HELP &amp; INFORMATION</div>
+      <div class="menu">
+        <button class="menu-item" type="button" data-info="guide">
+          <span class="panel-ico ico-guide"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z"/><path d="M4 19V5"/><path d="M9 8h6"/></svg></span>
+          <span class="menu-text">BEGINNER GUIDE</span>
+          <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+        <button class="menu-item" type="button" data-info="refund">
+          <span class="panel-ico ico-refund"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v5c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/></svg></span>
+          <span class="menu-text">REFUND POLICY</span>
+          <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+        <button class="menu-item" type="button" data-info="about">
+          <span class="panel-ico ico-about"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 100 18 9 9 0 000-18z"/><path d="M12 11v5"/><path d="M12 8h.01"/></svg></span>
+          <span class="menu-text">ABOUT GDX STORE</span>
+          <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+      </div>
+
+      <!-- Admin only (hidden for everyone else; the backend also checks admin) -->
+      <div class="panel" id="adminPanel" hidden>
+        <div class="panel-head">
+          <div class="panel-ico ico-admin">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+          </div>
+          <div>
+            <div class="panel-title">ADMIN: CREATE GIFT CODE</div>
+            <div class="panel-sub">Leave the code empty to auto-generate one.</div>
+          </div>
+        </div>
+        <div class="admin-fields">
+          <input class="field full" id="adCode" type="text" placeholder="Code (optional)" maxlength="40" autocomplete="off" autocapitalize="characters" spellcheck="false">
+          <input class="field" id="adAmount" type="number" inputmode="decimal" placeholder="Amount (INR)" min="0" step="0.01">
+          <input class="field" id="adUses" type="number" inputmode="numeric" placeholder="Max uses" min="1" step="1" value="1">
+        </div>
+        <button class="btn-primary btn-gold btn-wide" id="adCreate" type="button">CREATE CODE</button>
+        <div class="msg" id="adMsg" hidden></div>
+      </div>
+
       <div class="acc-error" id="accError" hidden></div>
     </div>
 
@@ -301,6 +452,21 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
       <div class="list" id="txnList"></div>
     </div>
 
+    <!-- Info page (Beginner Guide / Refund Policy / About) -->
+    <div class="acc-sub" id="accInfo" hidden>
+      <div class="sub-head">
+        <div class="sub-title">
+          <span class="ico-wrap" id="infoIco"></span>
+          <span id="infoTitle"></span>
+        </div>
+        <button class="back-btn" type="button" data-back>
+          <span class="back-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></span>
+          <span class="back-txt"><small>BACK TO</small><b>Account</b></span>
+        </button>
+      </div>
+      <div class="info-card" id="infoBody"></div>
+    </div>
+
   </section>
 </main>
 
@@ -326,7 +492,7 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
   },2000);
 
   // ---------- Account sub pages ----------
-  var subPages = { main: 'accMain', deposits: 'accDeposits', txns: 'accTxns' };
+  var subPages = { main: 'accMain', deposits: 'accDeposits', txns: 'accTxns', info: 'accInfo' };
 
   function showAcc(name){
     Object.keys(subPages).forEach(function(key){
@@ -359,10 +525,15 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
   });
 
   // Reusable API helper: always sends Telegram initData so the backend can verify the user
-  function api(path){
-    return fetch(path, {
-      headers: { 'X-Telegram-Init-Data': tg ? tg.initData : '' }
-    }).then(function(res){
+  function api(path, options){
+    options = options || {};
+    var headers = { 'X-Telegram-Init-Data': tg ? tg.initData : '' };
+    var init = { method: options.method || 'GET', headers: headers };
+    if (options.body) {
+      headers['Content-Type'] = 'application/json';
+      init.body = JSON.stringify(options.body);
+    }
+    return fetch(path, init).then(function(res){
       return res.json().then(function(data){
         if (!res.ok) throw new Error(data.error || 'Request failed');
         return data;
@@ -370,7 +541,12 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     });
   }
 
-  // Small safe DOM helper (never inserts untrusted text as HTML)
+  function friendlyError(e){
+    if (!e || e.name === 'TypeError' || e instanceof SyntaxError) return 'Network problem. Please try again.';
+    return e.message || 'Something went wrong. Please try again.';
+  }
+
+  // Small safe DOM helpers (never insert untrusted text as HTML)
   function el(tag, cls, text){
     var n = document.createElement(tag);
     if (cls) n.className = cls;
@@ -420,13 +596,19 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     return box;
   }
 
+  function setMsg(node, text, kind){
+    node.textContent = text;
+    node.className = 'msg ' + kind;
+    node.hidden = false;
+  }
+
   var accError = document.getElementById('accError');
   function showError(msg){
     accError.textContent = msg;
     accError.hidden = false;
   }
 
-  // ---------- Account: profile ----------
+  // ---------- Profile ----------
   var profileCard = document.getElementById('profileCard');
 
   function renderProfile(u){
@@ -435,6 +617,7 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     document.getElementById('pUser').textContent = u.username ? '@' + u.username : 'No username';
     document.getElementById('pId').textContent = String(u.id);
     document.getElementById('adminBadge').hidden = !u.isAdmin;
+    document.getElementById('adminPanel').hidden = !u.isAdmin;
 
     var img = document.getElementById('pImg');
     if (u.photoUrl) {
@@ -453,7 +636,7 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     });
   }
 
-  // ---------- Account: wallet (balance + record counts) ----------
+  // ---------- Wallet (balance + record counts) ----------
   var balanceCard = document.getElementById('balanceCard');
   var depTile = document.getElementById('depTile');
   var txnTile = document.getElementById('txnTile');
@@ -477,6 +660,95 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
   }
 
   // Deposit button: UI placeholder only. Payment system comes in a later task.
+
+  // ---------- Statistics ----------
+  var statsBox = document.getElementById('statsBox');
+  var STAT_IDS = ['stUser', 'stBalance', 'stBonus', 'stOrders', 'stDeposit', 'stSpent'];
+
+  function loadStats(){
+    return api('/api/stats').then(function(data){
+      var s = data.stats;
+      document.getElementById('stUser').textContent = s.username ? '@' + s.username : 'No username';
+      document.getElementById('stBalance').textContent = '\u20B9' + formatINR(s.balance);
+      document.getElementById('stBonus').textContent = '\u20B9' + formatINR(s.totalBonus);
+      document.getElementById('stOrders').textContent = String(s.totalOrders);
+      document.getElementById('stDeposit').textContent = '\u20B9' + formatINR(s.totalDeposit);
+      document.getElementById('stSpent').textContent = '\u20B9' + formatINR(s.totalSpent);
+    }).catch(function(){
+      STAT_IDS.forEach(function(id){ document.getElementById(id).textContent = '--'; });
+    }).then(function(){
+      statsBox.classList.remove('skeleton-st');
+    });
+  }
+
+  // ---------- Gift code ----------
+  var giftInput = document.getElementById('giftInput');
+  var claimBtn = document.getElementById('claimBtn');
+  var giftMsg = document.getElementById('giftMsg');
+
+  function claimGift(){
+    var code = giftInput.value.trim();
+    if (!code) { setMsg(giftMsg, 'Please enter a gift code.', 'err'); return; }
+    claimBtn.disabled = true;
+    api('/api/gift-code/claim', { method: 'POST', body: { code: code } }).then(function(d){
+      setMsg(giftMsg, '\u20B9' + formatINR(d.amount) + ' has been added to your wallet.', 'ok');
+      giftInput.value = '';
+      loadWallet();
+      loadStats();
+    }).catch(function(e){
+      setMsg(giftMsg, friendlyError(e), 'err');
+    }).then(function(){
+      claimBtn.disabled = false;
+    });
+  }
+  claimBtn.addEventListener('click', claimGift);
+  giftInput.addEventListener('keydown', function(e){ if (e.key === 'Enter') claimGift(); });
+
+  // ---------- Customer care (link comes from the backend, set in Railway Variables) ----------
+  var supportUrl = '';
+  var supportMsg = document.getElementById('supportMsg');
+
+  function loadConfig(){
+    return api('/api/config').then(function(d){ supportUrl = d.supportUrl || ''; }).catch(function(){});
+  }
+
+  document.getElementById('supportBtn').addEventListener('click', function(){
+    if (!supportUrl) { setMsg(supportMsg, 'Support link will be added soon.', 'err'); return; }
+    supportMsg.hidden = true;
+    try {
+      if (tg && /^https:\/\/t\.me\//i.test(supportUrl) && tg.openTelegramLink) tg.openTelegramLink(supportUrl);
+      else if (tg && tg.openLink) tg.openLink(supportUrl);
+      else window.open(supportUrl, '_blank');
+    } catch (e) {
+      setMsg(supportMsg, 'Could not open the support link.', 'err');
+    }
+  });
+
+  // ---------- Admin: create gift code ----------
+  var adMsg = document.getElementById('adMsg');
+  var adCreate = document.getElementById('adCreate');
+
+  adCreate.addEventListener('click', function(){
+    var amount = document.getElementById('adAmount').value;
+    if (!amount) { setMsg(adMsg, 'Please enter an amount.', 'err'); return; }
+    adCreate.disabled = true;
+    api('/api/admin/gift-codes', {
+      method: 'POST',
+      body: {
+        code: document.getElementById('adCode').value,
+        amount: amount,
+        maxUses: document.getElementById('adUses').value
+      }
+    }).then(function(d){
+      setMsg(adMsg, 'Created: ' + d.code + ' (\u20B9' + formatINR(d.amount) + ', ' + d.maxUses + ' use' + (d.maxUses === 1 ? '' : 's') + ')', 'ok');
+      document.getElementById('adCode').value = '';
+      document.getElementById('adAmount').value = '';
+    }).catch(function(e){
+      setMsg(adMsg, friendlyError(e), 'err');
+    }).then(function(){
+      adCreate.disabled = false;
+    });
+  });
 
   // ---------- Deposit History page ----------
   var depState = { list: [], counts: { completed: 0, failed: 0, pending: 0 }, tab: 'completed' };
@@ -547,8 +819,7 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
   function renderTransactions(items){
     txnList.textContent = '';
     if (!items.length) {
-      var box = emptyBox('No transactions', 'Every coin added or deducted will be listed here.');
-      txnList.appendChild(box);
+      txnList.appendChild(emptyBox('No transactions', 'Every coin added or deducted will be listed here.'));
       return;
     }
     items.forEach(function(t){
@@ -589,20 +860,126 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
   depTile.addEventListener('click', openDeposits);
   txnTile.addEventListener('click', openTransactions);
 
+  // ---------- Info pages: Beginner Guide, Refund Policy, About ----------
+  var INFO = {
+    guide: {
+      title: 'Beginner Guide',
+      icon: ['M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2z', 'M4 19V5', 'M9 8h6'],
+      intro: 'Welcome! This short guide shows you how to use GDX STORE step by step. Some features are being added gradually, so you may see new options appear over time.',
+      sections: [
+        { h: 'What is GDX STORE?', p: 'GDX STORE is a digital services platform inside Telegram. You can explore services, create landing pages, place orders and manage your wallet, all from one place.' },
+        { h: 'How to use the dashboard', list: [
+          'Home gives you a quick overview.',
+          'Landing Page is where you create and manage your landing pages.',
+          'Orders shows all your orders and their status.',
+          'Account has your wallet, history, gift codes and support.',
+          'Use the bar at the bottom to switch between these sections.'
+        ] },
+        { h: 'How to explore available services', p: 'Open the services section, browse the categories, and tap any service to see its description, features and price.' },
+        { h: 'How to create landing pages', list: [
+          'Open the Landing Page tab and choose to create a new page.',
+          'Pick a template and enter your page name.',
+          'Edit the text, images, buttons and colors.',
+          'Preview your page, then publish it to get your own link.'
+        ] },
+        { h: 'How to place an order', list: [
+          'Choose a service and tap the Order button.',
+          'Make sure your wallet has enough available balance.',
+          'Confirm the order. The amount is deducted from your wallet.'
+        ] },
+        { h: 'How to check order status', p: 'Open the Orders tab. Every order shows one of these statuses: Pending, Processing, Completed or Cancelled.' },
+        { h: 'How to use gift codes', list: [
+          'Go to Account and find the Gift Code section.',
+          'Type your code and tap CLAIM.',
+          'The reward is added to your wallet right away.',
+          'Each gift code can be used only once per account.'
+        ] },
+        { h: 'Understanding your available balance', p: 'Available balance is the money in your GDX STORE wallet that you can spend. It grows with deposits, gift codes and refunds, and it reduces when you buy a service.' },
+        { h: 'How to contact customer support', p: 'Go to Account, open Customer Care and tap Contact Support. Our team will help you with orders, deposits and refunds.' }
+      ]
+    },
+    refund: {
+      title: 'Refund Policy',
+      icon: ['M12 3l8 3v5c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z', 'M9 12l2 2 4-4'],
+      intro: 'At GDX STORE, we aim to provide reliable digital services.',
+      sections: [
+        { h: 'GDX STORE Refund Policy', ordered: true, list: [
+          'If a customer places an order and the service is successfully delivered, the order is considered completed and is not eligible for a refund.',
+          'If an order fails or cannot be completed successfully due to a technical issue or service failure, the eligible amount will automatically be credited back to the customer\u2019s GDX STORE wallet.',
+          'The refunded amount will be added to the user\u2019s available balance.',
+          'Users can use their refunded wallet balance to purchase other services or products available on GDX STORE.',
+          'Refunds are credited to the GDX STORE wallet. Direct refunds to bank accounts or external payment methods are not provided under the standard wallet refund policy.',
+          'If a refund is not credited automatically after an unsuccessful order, the user can contact customer support.'
+        ] }
+      ]
+    },
+    about: {
+      title: 'About GDX STORE',
+      icon: ['M12 3a9 9 0 100 18 9 9 0 000-18z', 'M12 11v5', 'M12 8h.01'],
+      intro: 'GDX STORE is a digital services platform where you can access digital services, manage orders, create landing pages and use various online tools from one place, right inside Telegram.',
+      sections: [
+        { h: 'What you can do', list: [
+          'Explore and order digital services.',
+          'Create and publish your own landing pages.',
+          'Track every order from start to finish.',
+          'Manage your wallet, deposits and gift codes.'
+        ] },
+        { h: 'Our goal', p: 'We want digital services to be simple, reliable and professional, so you can grow your business without any technical hassle.' }
+      ]
+    }
+  };
+
+  function openInfo(key){
+    var page = INFO[key];
+    if (!page) return;
+    document.getElementById('infoTitle').textContent = page.title;
+    var wrap = document.getElementById('infoIco');
+    wrap.textContent = '';
+    wrap.appendChild(svgIcon(page.icon));
+
+    var body = document.getElementById('infoBody');
+    body.textContent = '';
+    if (page.intro) {
+      var intro = el('div', 'info-sec');
+      intro.appendChild(el('p', '', page.intro));
+      body.appendChild(intro);
+    }
+    page.sections.forEach(function(s){
+      var sec = el('div', 'info-sec');
+      if (s.h) sec.appendChild(el('h3', '', s.h));
+      if (s.p) sec.appendChild(el('p', '', s.p));
+      if (s.list) {
+        var l = el(s.ordered ? 'ol' : 'ul');
+        s.list.forEach(function(t){ l.appendChild(el('li', '', t)); });
+        sec.appendChild(l);
+      }
+      body.appendChild(sec);
+    });
+    showAcc('info');
+  }
+
+  document.querySelectorAll('[data-info]').forEach(function(b){
+    b.addEventListener('click', function(){ openInfo(b.dataset.info); });
+  });
+
   // ---------- Start ----------
   function loadAccount(){
     if (!tg || !tg.initData) {
       document.getElementById('balNum').textContent = '--';
       document.getElementById('depCount').textContent = '--';
       document.getElementById('txnCount').textContent = '--';
+      STAT_IDS.forEach(function(id){ document.getElementById(id).textContent = '--'; });
       balanceCard.classList.remove('skeleton-bal');
       depTile.classList.remove('skeleton-tile');
       txnTile.classList.remove('skeleton-tile');
+      statsBox.classList.remove('skeleton-st');
       showError('Please open GDX STORE from inside Telegram to see your account.');
       return;
     }
     loadProfile();
     loadWallet();
+    loadStats();
+    loadConfig();
   }
 
   loadAccount();
