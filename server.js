@@ -55,7 +55,7 @@ async function initDatabase() {
             )
         `);
 
-        // Deposits: one row per deposit attempt. Filled by the payment system (later task).
+        // Deposits: one row per deposit attempt (status: pending / completed / failed).
         await pool.query(`
             CREATE TABLE IF NOT EXISTS deposits (
                 id          BIGSERIAL PRIMARY KEY,
@@ -67,7 +67,7 @@ async function initDatabase() {
             )
         `);
 
-        // Transactions: every wallet movement (deposit, gift code, purchase, refund).
+        // Transactions: every wallet movement (deposit, gift_code, purchase, refund, bonus).
         await pool.query(`
             CREATE TABLE IF NOT EXISTS transactions (
                 id            BIGSERIAL PRIMARY KEY,
@@ -81,19 +81,59 @@ async function initDatabase() {
             )
         `);
 
+        // Orders: used for statistics and refunds. The order system itself comes in a later phase.
+        // status: pending / processing / completed / failed / cancelled / refunded
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS orders (
+                id           BIGSERIAL PRIMARY KEY,
+                telegram_id  BIGINT NOT NULL REFERENCES users(telegram_id),
+                service_name TEXT NOT NULL DEFAULT '',
+                amount       NUMERIC(12,2) NOT NULL CHECK (amount >= 0),
+                status       TEXT NOT NULL DEFAULT 'pending',
+                refunded_at  TIMESTAMPTZ,
+                created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+        `);
+
+        // Gift codes (managed by admin) and who redeemed them.
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS gift_codes (
+                id         BIGSERIAL PRIMARY KEY,
+                code       TEXT NOT NULL UNIQUE,
+                amount     NUMERIC(12,2) NOT NULL CHECK (amount > 0),
+                max_uses   INTEGER NOT NULL DEFAULT 1 CHECK (max_uses > 0),
+                used_count INTEGER NOT NULL DEFAULT 0,
+                is_active  BOOLEAN NOT NULL DEFAULT TRUE,
+                expires_at TIMESTAMPTZ,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            )
+        `);
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS gift_code_redemptions (
+                id           BIGSERIAL PRIMARY KEY,
+                gift_code_id BIGINT NOT NULL REFERENCES gift_codes(id),
+                telegram_id  BIGINT NOT NULL REFERENCES users(telegram_id),
+                amount       NUMERIC(12,2) NOT NULL,
+                created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                UNIQUE (gift_code_id, telegram_id)
+            )
+        `);
+
         await pool.query(`CREATE INDEX IF NOT EXISTS idx_deposits_user ON deposits (telegram_id)`);
         await pool.query(`CREATE INDEX IF NOT EXISTS idx_transactions_user ON transactions (telegram_id)`);
+        await pool.query(`CREATE INDEX IF NOT EXISTS idx_orders_user ON orders (telegram_id)`);
 
         dbReady = true;
-        console.log("Database ready: users, deposits, transactions tables OK");
+        console.log("Database ready: users, deposits, transactions, orders, gift_codes, gift_code_redemptions OK");
     } catch (e) {
         console.error("Database init failed:", e.message);
     }
 }
 
 // Creates the user on first visit, or refreshes their Telegram name/username.
-async function ensureUser(tgUser) {
-    const result = await pool.query(
+// "db" can be the pool or a client that is inside a transaction.
+async function ensureUser(db, tgUser) {
+    const result = await db.query(
         `INSERT INTO users (telegram_id, first_name, last_name, username)
          VALUES ($1, $2, $3, $4)
          ON CONFLICT (telegram_id) DO UPDATE
@@ -174,6 +214,88 @@ function requireAdmin(req, res, next) {
     next();
 }
 
+// ---------- Helpers ----------
+
+const CODE_PATTERN = /^[A-Z0-9_-]{3,40}$/;
+
+function normalizeCode(value) {
+    const code = String(value || '').trim().toUpperCase();
+    return CODE_PATTERN.test(code) ? code : '';
+}
+
+// Simple in-memory limiter: max 8 gift code attempts per user per minute.
+const claimAttempts = new Map();
+function isClaimRateLimited(userId) {
+    const now = Date.now();
+    const recent = (claimAttempts.get(userId) || []).filter(t => now - t < 60000);
+    if (recent.length >= 8) {
+        claimAttempts.set(userId, recent);
+        return true;
+    }
+    recent.push(now);
+    claimAttempts.set(userId, recent);
+    return false;
+}
+
+// Refunds ONE failed order back to the wallet. Safe against double refunds:
+// the order row is locked, and only a "failed" order that was never refunded can pass.
+async function refundOrder(orderId) {
+    const db = await pool.connect();
+    try {
+        await db.query('BEGIN');
+
+        const found = await db.query(
+            `SELECT id, telegram_id, amount, status, refunded_at
+             FROM orders WHERE id = $1 FOR UPDATE`,
+            [orderId]
+        );
+        if (!found.rows.length) {
+            await db.query('ROLLBACK');
+            return { status: 404, error: 'Order not found.' };
+        }
+
+        const order = found.rows[0];
+        if (order.refunded_at || order.status === 'refunded') {
+            await db.query('ROLLBACK');
+            return { status: 409, error: 'This order has already been refunded.' };
+        }
+        if (order.status !== 'failed') {
+            await db.query('ROLLBACK');
+            return { status: 400, error: 'Only failed orders can be refunded.' };
+        }
+        if (Number(order.amount) <= 0) {
+            await db.query('ROLLBACK');
+            return { status: 400, error: 'Nothing to refund for this order.' };
+        }
+
+        const updated = await db.query(
+            `UPDATE users SET balance = balance + $1, updated_at = NOW()
+             WHERE telegram_id = $2 RETURNING balance`,
+            [order.amount, order.telegram_id]
+        );
+        const newBalance = updated.rows[0].balance;
+
+        await db.query(
+            `UPDATE orders SET status = 'refunded', refunded_at = NOW() WHERE id = $1`,
+            [order.id]
+        );
+        await db.query(
+            `INSERT INTO transactions (telegram_id, type, amount, status, balance_after, note)
+             VALUES ($1, 'refund', $2, 'completed', $3, $4)`,
+            [order.telegram_id, order.amount, newBalance, `Refund for order #${order.id}`]
+        );
+
+        await db.query('COMMIT');
+        return { status: 200, refunded: Number(order.amount), balance: Number(newBalance) };
+    } catch (err) {
+        try { await db.query('ROLLBACK'); } catch (e) { /* ignore */ }
+        console.error('Refund error:', err.message);
+        return { status: 500, error: 'Refund failed. Please try again.' };
+    } finally {
+        db.release();
+    }
+}
+
 // Wildcard Subdomain Handler
 app.use((req, res, next) => {
     const host = req.headers.host || '';
@@ -211,13 +333,20 @@ app.get('/api/me', requireTelegramAuth, (req, res) => {
     });
 });
 
+// Public app settings (support link is configurable from Railway Variables).
+app.get('/api/config', requireTelegramAuth, (req, res) => {
+    const raw = String(process.env.SUPPORT_URL || '').trim();
+    const supportUrl = /^https:\/\/\S+$/i.test(raw) ? raw : '';
+    res.json({ ok: true, supportUrl });
+});
+
 // Logged-in user's wallet. Balance and record counts always come from the database.
 app.get('/api/wallet', requireTelegramAuth, async (req, res) => {
     if (!pool || !dbReady) {
         return res.status(503).json({ ok: false, error: 'Wallet is temporarily unavailable' });
     }
     try {
-        const row = await ensureUser(req.tgUser);
+        const row = await ensureUser(pool, req.tgUser);
         const counts = await pool.query(
             `SELECT
                 (SELECT COUNT(*) FROM deposits     WHERE telegram_id = $1) AS deposit_count,
@@ -237,6 +366,42 @@ app.get('/api/wallet', requireTelegramAuth, async (req, res) => {
     } catch (err) {
         console.error('Wallet error:', err.message);
         res.status(500).json({ ok: false, error: 'Could not load wallet' });
+    }
+});
+
+// User statistics. Orders counted = processing + completed (no double counting).
+// Failed, cancelled, pending and refunded orders are never counted as spending.
+app.get('/api/stats', requireTelegramAuth, async (req, res) => {
+    if (!pool || !dbReady) {
+        return res.status(503).json({ ok: false, error: 'Statistics are temporarily unavailable' });
+    }
+    try {
+        const user = await ensureUser(pool, req.tgUser);
+        const result = await pool.query(
+            `SELECT
+                (SELECT COALESCE(SUM(amount), 0) FROM deposits
+                    WHERE telegram_id = $1 AND status = 'completed') AS total_deposit,
+                (SELECT COUNT(*) FROM orders
+                    WHERE telegram_id = $1 AND status IN ('processing', 'completed')) AS total_orders,
+                (SELECT COALESCE(SUM(amount), 0) FROM orders
+                    WHERE telegram_id = $1 AND status IN ('processing', 'completed')) AS total_spent`,
+            [req.tgUser.id]
+        );
+        const r = result.rows[0];
+        res.json({
+            ok: true,
+            stats: {
+                username: req.tgUser.username || '',
+                balance: Number(user.balance),
+                totalBonus: Number(user.total_bonus),
+                totalOrders: Number(r.total_orders),
+                totalDeposit: Number(r.total_deposit),
+                totalSpent: Number(r.total_spent)
+            }
+        });
+    } catch (err) {
+        console.error('Stats error:', err.message);
+        res.status(500).json({ ok: false, error: 'Could not load statistics' });
     }
 });
 
@@ -309,6 +474,138 @@ app.get('/api/transactions', requireTelegramAuth, async (req, res) => {
         console.error('Transactions error:', err.message);
         res.status(500).json({ ok: false, error: 'Could not load transactions' });
     }
+});
+
+// Gift code claim. Everything happens inside ONE database transaction.
+// The gift code row is locked, so two people (or two taps) can never over-redeem a code.
+app.post('/api/gift-code/claim', requireTelegramAuth, async (req, res) => {
+    if (!pool || !dbReady) {
+        return res.status(503).json({ ok: false, error: 'Gift codes are temporarily unavailable' });
+    }
+
+    const uid = req.tgUser.id;
+    if (isClaimRateLimited(uid)) {
+        return res.status(429).json({ ok: false, error: 'Too many attempts. Please wait a minute and try again.' });
+    }
+
+    const code = normalizeCode(req.body && req.body.code);
+    if (!code) {
+        return res.status(400).json({ ok: false, error: 'Please enter a valid gift code.' });
+    }
+
+    const db = await pool.connect();
+    const fail = async (status, message) => {
+        await db.query('ROLLBACK');
+        return res.status(status).json({ ok: false, error: message });
+    };
+
+    try {
+        await db.query('BEGIN');
+        await ensureUser(db, req.tgUser);
+
+        const found = await db.query(
+            `SELECT id, amount, max_uses, used_count, is_active, expires_at
+             FROM gift_codes WHERE code = $1 FOR UPDATE`,
+            [code]
+        );
+        if (!found.rows.length) return await fail(404, 'Invalid gift code.');
+
+        const gift = found.rows[0];
+        if (!gift.is_active) return await fail(400, 'This gift code is no longer active.');
+        if (gift.expires_at && new Date(gift.expires_at) < new Date()) {
+            return await fail(400, 'This gift code has expired.');
+        }
+
+        const prior = await db.query(
+            `SELECT 1 FROM gift_code_redemptions WHERE gift_code_id = $1 AND telegram_id = $2`,
+            [gift.id, uid]
+        );
+        if (prior.rows.length) return await fail(409, 'You have already redeemed this gift code.');
+        if (gift.used_count >= gift.max_uses) {
+            return await fail(409, 'This gift code has already been fully redeemed.');
+        }
+
+        await db.query(
+            `INSERT INTO gift_code_redemptions (gift_code_id, telegram_id, amount) VALUES ($1, $2, $3)`,
+            [gift.id, uid, gift.amount]
+        );
+        await db.query(`UPDATE gift_codes SET used_count = used_count + 1 WHERE id = $1`, [gift.id]);
+
+        const updated = await db.query(
+            `UPDATE users
+             SET balance = balance + $1, total_bonus = total_bonus + $1, updated_at = NOW()
+             WHERE telegram_id = $2 RETURNING balance`,
+            [gift.amount, uid]
+        );
+        const newBalance = updated.rows[0].balance;
+
+        await db.query(
+            `INSERT INTO transactions (telegram_id, type, amount, status, balance_after, note)
+             VALUES ($1, 'gift_code', $2, 'completed', $3, $4)`,
+            [uid, gift.amount, newBalance, `Gift code ${code}`]
+        );
+
+        await db.query('COMMIT');
+        res.json({ ok: true, amount: Number(gift.amount), balance: Number(newBalance) });
+    } catch (err) {
+        try { await db.query('ROLLBACK'); } catch (e) { /* ignore */ }
+        console.error('Gift code error:', err.message);
+        res.status(500).json({ ok: false, error: 'Could not claim the gift code. Please try again.' });
+    } finally {
+        db.release();
+    }
+});
+
+// Admin only: create a gift code. Leave code empty to auto-generate one.
+app.post('/api/admin/gift-codes', requireTelegramAuth, requireAdmin, async (req, res) => {
+    if (!pool || !dbReady) {
+        return res.status(503).json({ ok: false, error: 'Database is not ready' });
+    }
+    const body = req.body || {};
+
+    let code = String(body.code || '').trim().toUpperCase();
+    if (!code) code = 'GDX' + crypto.randomBytes(4).toString('hex').toUpperCase();
+    if (!CODE_PATTERN.test(code)) {
+        return res.status(400).json({ ok: false, error: 'Code must be 3-40 characters: A-Z, 0-9, - or _' });
+    }
+
+    const amount = Math.round(Number(body.amount) * 100) / 100;
+    if (!isFinite(amount) || amount <= 0 || amount > 100000) {
+        return res.status(400).json({ ok: false, error: 'Amount must be between 0.01 and 100000.' });
+    }
+
+    const maxUses = body.maxUses === undefined || body.maxUses === '' ? 1 : parseInt(body.maxUses, 10);
+    if (!Number.isInteger(maxUses) || maxUses < 1 || maxUses > 100000) {
+        return res.status(400).json({ ok: false, error: 'Max uses must be between 1 and 100000.' });
+    }
+
+    try {
+        await pool.query(
+            `INSERT INTO gift_codes (code, amount, max_uses) VALUES ($1, $2, $3)`,
+            [code, amount, maxUses]
+        );
+        res.json({ ok: true, code, amount, maxUses });
+    } catch (err) {
+        if (err.code === '23505') {
+            return res.status(409).json({ ok: false, error: 'This gift code already exists.' });
+        }
+        console.error('Create gift code error:', err.message);
+        res.status(500).json({ ok: false, error: 'Could not create the gift code.' });
+    }
+});
+
+// Admin only: refund a failed order to the user's wallet (never twice).
+app.post('/api/admin/orders/:id/refund', requireTelegramAuth, requireAdmin, async (req, res) => {
+    if (!pool || !dbReady) {
+        return res.status(503).json({ ok: false, error: 'Database is not ready' });
+    }
+    const orderId = Number(req.params.id);
+    if (!Number.isInteger(orderId) || orderId <= 0) {
+        return res.status(400).json({ ok: false, error: 'Invalid order id.' });
+    }
+    const result = await refundOrder(orderId);
+    if (result.error) return res.status(result.status).json({ ok: false, error: result.error });
+    res.json({ ok: true, refunded: result.refunded, balance: result.balance });
 });
 
 app.post('/api/create-client', async (req, res) => {
