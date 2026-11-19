@@ -193,3 +193,4 @@ function renderLandingTemplate(key, input) {
 }
 
 module.exports = { LANDING_TEMPLATES, findTemplate, renderLandingTemplate };
+const { initProjectSchema } = require('./project-schema');
