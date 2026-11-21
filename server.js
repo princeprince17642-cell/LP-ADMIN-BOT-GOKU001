@@ -4,7 +4,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { Pool } = require('pg');
 const { LANDING_TEMPLATES, findTemplate, renderLandingTemplate } = require('./landing-templates');
-
+const projectsModule = require('./projects');
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
