@@ -1048,7 +1048,15 @@ function getLandingPageHTML(client) {
 </body>
 </html>`;
 }
-
+const projects = projectsModule.setup(app, {
+    getPool: () => pool,
+    isDbReady: () => dbReady,
+    requireTelegramAuth,
+    ensureUser: (u) => ensureUser(pool, u),
+    findTemplate,
+    baseUrl: 'https://' + RAILWAY_DOMAIN,
+    mainBotToken: BOT_TOKEN
+});
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, async () => {
     console.log(`Server running on port ${PORT}`);
