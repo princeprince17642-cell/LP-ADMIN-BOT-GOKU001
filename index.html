@@ -763,7 +763,7 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     <b id="spName">Design</b>
     <span id="spTag"></span>
   </div>
-  <button class="buy-btn" id="buyBtn" type="button">BUY</button>
+  <button class="buy-btn" id="buyBtn" type="button">BUY NOW</button>
 </div>
 
 <!-- Full screen preview -->
@@ -1192,7 +1192,15 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
   }
 
   // BUY: placeholder only. The purchase flow will be built later.
-  document.getElementById('buyBtn').addEventListener('click', function(){});
+  const projects = projectsModule.setup(app, {
+    getPool: () => pool,
+    isDbReady: () => dbReady,
+    requireTelegramAuth,
+    ensureUser: (u) => ensureUser(pool, u),
+    findTemplate,
+    baseUrl: 'https://' + RAILWAY_DOMAIN,
+    mainBotToken: BOT_TOKEN
+});
 
   // ----- Full screen preview -----
   var modal = document.getElementById('modal');
