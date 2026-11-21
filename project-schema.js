@@ -1,11 +1,11 @@
-// project-schema.js
+'use strict';
 // Database tables for the "Landing Page + Tracking Generator" (multi-tenant).
-// Every project belongs to ONE owner (owner_telegram_id). All queries must filter by owner.
-// Tokens are stored ENCRYPTED (columns ending in _enc). Never store or log them in plain text.
+// Every project belongs to ONE owner (owner_telegram_id). All owner queries filter by it.
+// Tokens are stored ENCRYPTED (columns ending in _enc). They are never logged or returned.
+// Safe to run many times (CREATE IF NOT EXISTS + ADD COLUMN IF NOT EXISTS).
 
 async function initProjectSchema(pool) {
 
-    // One project = one landing page + one Pixel + one bot + one channel
     await pool.query(`
         CREATE TABLE IF NOT EXISTS projects (
             id                  BIGSERIAL PRIMARY KEY,
@@ -13,18 +13,15 @@ async function initProjectSchema(pool) {
             owner_telegram_id   BIGINT NOT NULL REFERENCES users(telegram_id),
             status              TEXT NOT NULL DEFAULT 'draft'
                                 CHECK (status IN ('draft', 'active', 'paused')),
-
             template_key        TEXT NOT NULL,
             theme               JSONB NOT NULL DEFAULT '{}'::jsonb,
             channel_name        TEXT NOT NULL,
             headline            TEXT NOT NULL,
             button_text         TEXT NOT NULL DEFAULT 'JOIN NOW',
             image_url           TEXT NOT NULL DEFAULT '',
-
             pixel_id            TEXT NOT NULL,
             capi_token_enc      TEXT NOT NULL,
             test_event_code     TEXT NOT NULL DEFAULT '',
-
             bot_token_enc       TEXT NOT NULL,
             bot_id              BIGINT NOT NULL,
             bot_username        TEXT NOT NULL DEFAULT '',
@@ -32,7 +29,6 @@ async function initProjectSchema(pool) {
             channel_title       TEXT NOT NULL DEFAULT '',
             webhook_secret_hash TEXT NOT NULL,
             webhook_set_at      TIMESTAMPTZ,
-
             require_fbclid      BOOLEAN NOT NULL DEFAULT TRUE,
             turnstile_enabled   BOOLEAN NOT NULL DEFAULT FALSE,
             validated_at        TIMESTAMPTZ,
@@ -40,12 +36,13 @@ async function initProjectSchema(pool) {
             updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )
     `);
-    // A Telegram bot has only ONE webhook, so one bot can belong to only one project.
+    await pool.query(`ALTER TABLE projects ADD COLUMN IF NOT EXISTS content JSONB NOT NULL DEFAULT '{}'::jsonb`);
+    // One bot = one project (a Telegram bot can have only one webhook)
     await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS ux_projects_bot ON projects (bot_id)`);
     await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS ux_projects_owner_channel ON projects (owner_telegram_id, channel_id)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_projects_owner ON projects (owner_telegram_id)`);
 
-    // A visitor session = one person's visit (fbc / fbp / IP / user-agent saved at Join click)
+    // A visitor = one browser session. Attribution is saved at the FIRST visit and never overwritten.
     await pool.query(`
         CREATE TABLE IF NOT EXISTS visitors (
             id          BIGSERIAL PRIMARY KEY,
@@ -61,6 +58,21 @@ async function initProjectSchema(pool) {
             UNIQUE (project_id, session_id)
         )
     `);
+    const visitorCols = [
+        `referrer TEXT NOT NULL DEFAULT ''`,
+        `campaign_id TEXT NOT NULL DEFAULT ''`,
+        `adset_id TEXT NOT NULL DEFAULT ''`,
+        `ad_id TEXT NOT NULL DEFAULT ''`,
+        `utm_source TEXT NOT NULL DEFAULT ''`,
+        `utm_medium TEXT NOT NULL DEFAULT ''`,
+        `utm_campaign TEXT NOT NULL DEFAULT ''`,
+        `utm_content TEXT NOT NULL DEFAULT ''`,
+        `utm_term TEXT NOT NULL DEFAULT ''`,
+        `last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`
+    ];
+    for (const col of visitorCols) {
+        await pool.query(`ALTER TABLE visitors ADD COLUMN IF NOT EXISTS ${col}`);
+    }
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_visitors_ip ON visitors (project_id, ip, created_at DESC)`);
 
     // One unique invite link per visitor session (creates_join_request = true), short expiry
@@ -79,7 +91,7 @@ async function initProjectSchema(pool) {
         )
     `);
 
-    // One row per (project, channel, user): this is what prevents duplicate Subscribe events
+    // One row per (project, channel, user): this prevents duplicate Subscribe events
     await pool.query(`
         CREATE TABLE IF NOT EXISTS join_events (
             id                   BIGSERIAL PRIMARY KEY,
@@ -101,9 +113,13 @@ async function initProjectSchema(pool) {
             UNIQUE (project_id, chat_id, telegram_user_id)
         )
     `);
+    // Snapshot of the campaign attribution at the moment of the join (survives visitor deletion)
+    await pool.query(`ALTER TABLE join_events ADD COLUMN IF NOT EXISTS attribution JSONB NOT NULL DEFAULT '{}'::jsonb`);
+    await pool.query(`ALTER TABLE join_events ADD COLUMN IF NOT EXISTS source_url TEXT NOT NULL DEFAULT ''`);
+    await pool.query(`ALTER TABLE join_events ADD COLUMN IF NOT EXISTS visitor_session TEXT NOT NULL DEFAULT ''`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_join_events_project ON join_events (project_id, created_at DESC)`);
 
-    // Structured log of EVERY Meta CAPI call (join, test, validate). No tokens are ever stored here.
+    // Structured log of EVERY Meta CAPI call. No tokens are ever stored here.
     await pool.query(`
         CREATE TABLE IF NOT EXISTS capi_log (
             id              BIGSERIAL PRIMARY KEY,
@@ -120,7 +136,7 @@ async function initProjectSchema(pool) {
     `);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_capi_log_project ON capi_log (project_id, created_at DESC)`);
 
-    // Dashboard counters (one row per project per day)
+    // Dashboard counters (one row per project per day, UTC)
     await pool.query(`
         CREATE TABLE IF NOT EXISTS project_stats_daily (
             project_id    BIGINT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
@@ -136,8 +152,9 @@ async function initProjectSchema(pool) {
             PRIMARY KEY (project_id, day)
         )
     `);
+    // Join requests that did NOT come through our unique links (never sent to Meta)
+    await pool.query(`ALTER TABLE project_stats_daily ADD COLUMN IF NOT EXISTS unattributed_join_requests INTEGER NOT NULL DEFAULT 0`);
 
-    // Why clicks were blocked (bot, no_fbclid, rate_limit, turnstile ...)
     await pool.query(`
         CREATE TABLE IF NOT EXISTS blocked_daily (
             project_id  BIGINT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
