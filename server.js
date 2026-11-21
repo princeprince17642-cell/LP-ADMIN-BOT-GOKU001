@@ -1062,7 +1062,7 @@ app.listen(PORT, async () => {
     console.log(`Server running on port ${PORT}`);
 
     await initDatabase();
-
+    await projects.init();
     // Auto set webhook on startup
     try {
         const webhookUrl = `https://${RAILWAY_DOMAIN}/api/admin-bot-webhook`;
