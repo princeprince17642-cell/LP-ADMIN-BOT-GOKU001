@@ -83,6 +83,10 @@ function normalizeAttribution(b) {
         const v = clean(b[k], 40);
         out[k] = RE.numId.test(v) ? v : '';
     });
+    ['campaign_name', 'adset_name', 'ad_name'].forEach(k => {
+        const v = clean(b[k], 200);
+        out[k] = /^\{\{.*\}\}$/.test(v) ? '' : v;      // ignore an unresolved Meta placeholder
+    });
     ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'].forEach(k => { out[k] = clean(b[k], 200); });
     return out;
 }
@@ -262,8 +266,9 @@ function createPgStore(getPool) {
         // First-touch: existing non-empty values are never overwritten.
         upsertVisitor: (projectId, v) => one(
             `INSERT INTO visitors (project_id, session_id, fbc, fbp, fbclid, source_url, referrer, ip, user_agent,
-                campaign_id, adset_id, ad_id, utm_source, utm_medium, utm_campaign, utm_content, utm_term)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+                campaign_id, adset_id, ad_id, utm_source, utm_medium, utm_campaign, utm_content, utm_term,
+                campaign_name, adset_name, ad_name)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
              ON CONFLICT (project_id, session_id) DO UPDATE SET
                 fbc = CASE WHEN visitors.fbc = '' THEN EXCLUDED.fbc ELSE visitors.fbc END,
                 fbp = CASE WHEN visitors.fbp = '' THEN EXCLUDED.fbp ELSE visitors.fbp END,
@@ -280,10 +285,14 @@ function createPgStore(getPool) {
                 utm_campaign = CASE WHEN visitors.utm_campaign = '' THEN EXCLUDED.utm_campaign ELSE visitors.utm_campaign END,
                 utm_content = CASE WHEN visitors.utm_content = '' THEN EXCLUDED.utm_content ELSE visitors.utm_content END,
                 utm_term = CASE WHEN visitors.utm_term = '' THEN EXCLUDED.utm_term ELSE visitors.utm_term END,
+                campaign_name = CASE WHEN visitors.campaign_name = '' THEN EXCLUDED.campaign_name ELSE visitors.campaign_name END,
+                adset_name = CASE WHEN visitors.adset_name = '' THEN EXCLUDED.adset_name ELSE visitors.adset_name END,
+                ad_name = CASE WHEN visitors.ad_name = '' THEN EXCLUDED.ad_name ELSE visitors.ad_name END,
                 last_seen_at = NOW()
              RETURNING id, created_at, (xmax = 0) AS inserted`,
             [projectId, v.sid, v.fbc, v.fbp, v.fbclid, v.sourceUrl, v.referrer, v.ip, v.ua,
-             v.campaign_id, v.adset_id, v.ad_id, v.utm_source, v.utm_medium, v.utm_campaign, v.utm_content, v.utm_term]),
+             v.campaign_id, v.adset_id, v.ad_id, v.utm_source, v.utm_medium, v.utm_campaign, v.utm_content, v.utm_term,
+             v.campaign_name, v.adset_name, v.ad_name]),
         getVisitorById: (id) => one(`SELECT * FROM visitors WHERE id = $1`, [id]),
         getVisitorBySession: (projectId, sid) => one(`SELECT fbclid, fbc FROM visitors WHERE project_id = $1 AND session_id = $2`, [projectId, sid]),
         async countVisitorsByIp(projectId, ip, minutes) {
@@ -335,10 +344,13 @@ function createPgStore(getPool) {
                  GROUP BY reason ORDER BY SUM(count) DESC`, [projectId, days])).rows;
             const attribution = (await q(
                 `SELECT COALESCE(NULLIF(attribution->>'campaign_id',''),'(unknown)') AS campaign_id,
+                        COALESCE(attribution->>'campaign_name','') AS campaign_name,
                         COALESCE(NULLIF(attribution->>'adset_id',''),'(unknown)') AS adset_id,
+                        COALESCE(attribution->>'adset_name','') AS adset_name,
                         COALESCE(NULLIF(attribution->>'ad_id',''),'(unknown)') AS ad_id,
+                        COALESCE(attribution->>'ad_name','') AS ad_name,
                         COUNT(*) AS joins, COUNT(*) FILTER (WHERE status = 'sent') AS sent
-                 FROM join_events WHERE project_id = $1 GROUP BY 1,2,3 ORDER BY COUNT(*) DESC LIMIT 20`, [projectId])).rows;
+                 FROM join_events WHERE project_id = $1 GROUP BY 1,2,3,4,5,6 ORDER BY COUNT(*) DESC LIMIT 20`, [projectId])).rows;
             const recentCapi = (await q(
                 `SELECT kind, event_id, ok, http_status, events_received, fbtrace_id, error_message, created_at
                  FROM capi_log WHERE project_id = $1 ORDER BY created_at DESC LIMIT 8`, [projectId])).rows;
@@ -346,7 +358,7 @@ function createPgStore(getPool) {
             return {
                 totals: num(totals),
                 blocked: blocked.map(b => ({ reason: b.reason, count: Number(b.count) })),
-                attribution: attribution.map(a => ({ campaignId: a.campaign_id, adsetId: a.adset_id, adId: a.ad_id, joins: Number(a.joins), sent: Number(a.sent) })),
+                attribution: attribution.map(a => ({ campaignId: a.campaign_id, campaignName: a.campaign_name, adsetId: a.adset_id, adsetName: a.adset_name, adId: a.ad_id, adName: a.ad_name, joins: Number(a.joins), sent: Number(a.sent) })),
                 recentCapi: recentCapi.map(c => ({ kind: c.kind, eventId: c.event_id, ok: c.ok, httpStatus: c.http_status, eventsReceived: c.events_received, fbtraceId: c.fbtrace_id, error: c.error_message, createdAt: c.created_at }))
             };
         }
@@ -391,7 +403,9 @@ function mount(app, ctx) {
         next();
     };
 
-    const pageUrl = (p) => `${baseUrl}/p/${p.public_id}`;
+    // Landing page links use PUBLIC_BASE_URL (your own domain later); API + webhooks stay on baseUrl.
+    const pageBase = String(ctx.pageBaseUrl || baseUrl).replace(/\/+$/, '');
+    const pageUrl = (p) => `${pageBase}/p/${p.public_id}`;
 
     function serialize(p) {
         return {
@@ -415,6 +429,7 @@ function mount(app, ctx) {
             turnstileEnabled: !!p.turnstile_enabled,
             pageUrl: pageUrl(p),
             joinRequests: p.total_joins !== undefined ? Number(p.total_joins) : undefined,
+            webhookConnected: !!p.webhook_set_at,
             createdAt: p.created_at,
             updatedAt: p.updated_at
         };
@@ -625,7 +640,7 @@ function mount(app, ctx) {
 
     // ----- owner API -----
     app.get('/api/projects/config', auth, (req, res) => {
-        res.json({ ok: true, encryptionReady: secure.isEncryptionReady(), turnstileAvailable: turnstileReady, maxProjects: MAX_PROJECTS_PER_USER, baseUrl });
+        res.json({ ok: true, encryptionReady: secure.isEncryptionReady(), turnstileAvailable: turnstileReady, maxProjects: MAX_PROJECTS_PER_USER, baseUrl: pageBase });
     });
 
     app.post('/api/projects/verify-channel', auth, handle(async (req, res) => {
@@ -703,7 +718,7 @@ function mount(app, ctx) {
         const stats = await store.getStats(p.id, 30);
         res.json({
             ok: true, project: serialize(p), stats,
-            adParams: 'campaign_id={{campaign.id}}&adset_id={{adset.id}}&ad_id={{ad.id}}&utm_source=facebook&utm_medium=paid&utm_campaign={{campaign.name}}&utm_content={{ad.name}}&utm_term={{adset.name}}'
+            adParams: 'campaign_id={{campaign.id}}&campaign_name={{campaign.name}}&adset_id={{adset.id}}&adset_name={{adset.name}}&ad_id={{ad.id}}&ad_name={{ad.name}}&utm_source=facebook&utm_medium=paid&utm_campaign={{campaign.name}}&utm_content={{ad.name}}&utm_term={{adset.name}}'
         });
     }));
 
@@ -723,6 +738,24 @@ function mount(app, ctx) {
         await store.deleteOwned(p.public_id, req.tgUser.id);
         logJson('project_deleted', { project: p.public_id });
         res.json({ ok: true });
+    }));
+
+    // Live check of the bot / channel / webhook connection of one project
+    app.post('/api/projects/:id/check', auth, handle(async (req, res) => {
+        needReady();
+        const p = await owned(req);
+        const token = secure.decrypt(p.bot_token_enc);
+        let v = null, error = '';
+        try { v = await integ.verifyBotAndChannel(token, String(p.channel_id)); } catch (e) { error = e.message || 'Check failed'; }
+        let webhookOk = false, pending = 0, lastError = '';
+        try {
+            const w = await integ.getWebhookInfo(token);
+            webhookOk = w.url === `${baseUrl}/api/tg/${p.public_id}`;
+            pending = w.pending_update_count || 0;
+            lastError = w.last_error_message || '';
+        } catch (e) { /* ignore */ }
+        res.json({ ok: true, botOk: !!v, botUsername: v ? v.bot.username : p.bot_username, channelTitle: v ? v.chat.title : p.channel_title,
+            isAdmin: !!(v && v.isAdmin), canInvite: !!(v && v.canInvite), webhookOk, pendingUpdates: pending, webhookError: lastError, error });
     }));
 
     // Sends a test Subscribe. It goes to the Meta "Test Events" tab ONLY (needs a Test Event Code),
@@ -749,7 +782,7 @@ function mount(app, ctx) {
         needReady();
         const p = await owned(req);
         res.set('Content-Disposition', `attachment; filename="gdx-landing-${p.public_id}.html"`);
-        res.type('html').send(renderProjectPage(p, { apiBase: baseUrl, turnstileSiteKey: turnstileReady ? turnstile.siteKey : '' }));
+        res.type('html').send(renderProjectPage(p, { apiBase: pageBase, turnstileSiteKey: turnstileReady ? turnstile.siteKey : '' }));
     }));
 
     return {
@@ -770,6 +803,7 @@ function setup(app, deps) {
         findTemplate: deps.findTemplate,
         isDbReady: deps.isDbReady,
         baseUrl: deps.baseUrl,
+        pageBaseUrl: deps.pageBaseUrl || process.env.PUBLIC_BASE_URL || deps.baseUrl,
         mainBotId
     });
 
@@ -797,11 +831,16 @@ function setup(app, deps) {
 
     return {
         async init() {
-            const pool = deps.getPool();
-            if (!pool) return;
-            await initProjectSchema(pool);
-            if (!secure.isEncryptionReady()) {
-                console.error('WARNING: TOKEN_ENCRYPTION_KEY is missing or invalid. Projects cannot be created until it is set in Railway > Variables.');
+            try {
+                const pool = deps.getPool();
+                if (!pool) return;
+                await initProjectSchema(pool);
+                if (!secure.isEncryptionReady()) {
+                    console.error('WARNING: TOKEN_ENCRYPTION_KEY is missing or invalid. Projects cannot be created until it is set in Railway > Variables.');
+                }
+            } catch (e) {
+                // The project feature must never take the rest of GDX STORE down.
+                console.error('Project feature setup failed (the rest of the app keeps working):', scrubError(e));
             }
         }
     };

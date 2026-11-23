@@ -15,6 +15,7 @@
   var FIELD_IDS = { templateKey: 'gp-tpl', pixelId: 'gp-pixel', capiToken: 'gp-capi', testEventCode: 'gp-test', botToken: 'gp-bot', channelId: 'gp-channel',
     channelName: 'gp-name', headline: 'gp-headline', subtitle: 'gp-sub', buttonText: 'gp-button', imageUrl: 'gp-image', description: 'gp-desc', guidePoints: 'gp-guide', theme: 'gp-theme' };
 
+  var AD_PARAMS = 'campaign_id={{campaign.id}}&campaign_name={{campaign.name}}&adset_id={{adset.id}}&adset_name={{adset.name}}&ad_id={{ad.id}}&ad_name={{ad.name}}&utm_source=facebook&utm_medium=paid&utm_campaign={{campaign.name}}&utm_content={{ad.name}}&utm_term={{adset.name}}';
   var root, body, titleEl, stack = [], cfg = null, lastKey = 'premium-dark', accent = '', bgStyle = 'template', verified = null;
 
   // ---------- helpers ----------
@@ -200,7 +201,8 @@
       h += '<div class="gp-card"><div class="gp-h">2. META PIXEL</div><div class="gp-sub">From Meta Events Manager &gt; your Pixel &gt; Settings.</div>' +
         '<label for="gp-pixel">Pixel ID</label><input type="text" id="gp-pixel" inputmode="numeric" autocomplete="off" placeholder="e.g. 1234567890123456"><div class="gp-err" data-err="pixelId"></div>' +
         '<label for="gp-capi">CAPI Access Token</label><input type="password" id="gp-capi" autocomplete="new-password" placeholder="Paste the Conversions API token"><div class="gp-err" data-err="capiToken"></div>' +
-        '<label for="gp-test">Test Event Code <small>(optional)</small></label><input type="text" id="gp-test" autocomplete="off" placeholder="e.g. TEST12345"><div class="gp-err" data-err="testEventCode"></div></div>';
+        '<label for="gp-test">Test Event Code <small>(optional)</small></label><input type="text" id="gp-test" autocomplete="off" placeholder="e.g. TEST12345"><div class="gp-err" data-err="testEventCode"></div>' +
+        '<label>Campaign tracking parameters</label><div class="gp-sub" style="margin:0 0 6px">Add this in your Meta ad &gt; Tracking &gt; URL parameters. Then every join is linked to its campaign, ad set and ad.</div><div class="gp-code" id="gp-params">' + esc(AD_PARAMS) + '</div><button type="button" class="gp-btn sm ghost" id="gp-copyparams" style="margin-top:8px">COPY PARAMETERS</button></div>';
 
       h += '<div class="gp-card"><div class="gp-h">3. TELEGRAM BOT &amp; CHANNEL</div><div class="gp-sub">Use <b>your own</b> bot (create it in @BotFather). One bot can be used in one project only. Add the bot to your channel as an admin with the <b>Invite users via link</b> permission.</div>' +
         '<label for="gp-bot">Bot Token</label><input type="password" id="gp-bot" autocomplete="new-password" placeholder="123456789:ABC..."><div class="gp-err" data-err="botToken"></div>' +
@@ -250,7 +252,7 @@
         b.classList.add('on'); bgStyle = b.getAttribute('data-bg');
       });
     });
-    if (!edit) $('gp-verify').addEventListener('click', doVerify);
+    if (!edit) { $('gp-verify').addEventListener('click', doVerify); $('gp-copyparams').addEventListener('click', function () { copy(AD_PARAMS); }); }
     $('gp-submit').addEventListener('click', function () { submitForm(edit, p); });
   }
 
@@ -370,6 +372,8 @@
       titleEl.textContent = p.channelName.toUpperCase();
       var h = '<div class="gp-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div><b style="font-size:16px">' + esc(p.channelName) + '</b><div class="gp-sub" style="margin:2px 0 0">' + esc(tplName(p.templateKey)) + ' &middot; bot @' + esc(p.botUsername) + '</div></div><span class="gp-chip2 ' + esc(p.status) + '">' + esc(p.status.toUpperCase()) + '</span></div></div>';
 
+      h += '<div class="gp-card"><div class="gp-h">BOT &amp; CHANNEL CONNECTION</div><div class="gp-sub" style="margin:0 0 8px">Bot <b>@' + esc(p.botUsername) + '</b> &middot; Channel <b>' + esc(p.channelTitle) + '</b> &middot; Webhook: <b>' + (p.webhookConnected ? 'connected' : 'not connected') + '</b></div><div id="d-conn"></div><button type="button" class="gp-btn sm ghost" id="d-check">CHECK CONNECTION</button></div>';
+
       h += '<div class="gp-card"><div class="gp-h">YOUR LANDING PAGE</div><div class="gp-sub">Use this link as the destination URL in your Meta ad.</div><div class="gp-url"><span style="flex:1">' + esc(p.pageUrl) + '</span></div>' +
         '<div class="gp-row" style="margin-top:10px"><button type="button" class="gp-btn sm" id="d-copy" style="flex:1">COPY LINK</button><button type="button" class="gp-btn sm green" id="d-open" style="flex:1">OPEN PAGE</button></div>' +
         '<div class="gp-row" style="margin-top:8px"><button type="button" class="gp-btn sm ghost" id="d-dl" style="flex:1">DOWNLOAD HTML</button><button type="button" class="gp-btn sm ghost" id="d-test" style="flex:1">SEND TEST EVENT</button></div>' +
@@ -383,7 +387,8 @@
       h += '<div class="gp-card"><div class="gp-h">WHICH AD BROUGHT THE JOINS</div>';
       if (!s.attribution.length) h += '<div class="gp-sub" style="margin:0">No join requests yet.</div>';
       else h += '<table class="gp-tbl"><tr><th>CAMPAIGN</th><th>AD SET</th><th>AD</th><th>JOINS</th></tr>' + s.attribution.map(function (a) {
-        return '<tr><td>' + esc(a.campaignId) + '</td><td>' + esc(a.adsetId) + '</td><td>' + esc(a.adId) + '</td><td>' + a.joins + '</td></tr>';
+        function cell(n, i) { return esc(n || i) + (n ? '<br><small style="color:#7f8cab">' + esc(i) + '</small>' : ''); }
+        return '<tr><td>' + cell(a.campaignName, a.campaignId) + '</td><td>' + cell(a.adsetName, a.adsetId) + '</td><td>' + cell(a.adName, a.adId) + '</td><td>' + a.joins + '</td></tr>';
       }).join('') + '</table>';
       h += '</div>';
 
@@ -399,6 +404,7 @@
       h += '<div class="gp-row"><button type="button" class="gp-btn ghost" id="d-edit" style="flex:1">EDIT</button><button type="button" class="gp-btn ghost" id="d-pause" style="flex:1">' + (p.status === 'active' ? 'PAUSE' : 'RESUME') + '</button><button type="button" class="gp-btn red" id="d-del" style="flex:1">DELETE</button></div>';
       body.innerHTML = h;
 
+      $('d-check').addEventListener('click', function () { checkConn(p); });
       $('d-copy').addEventListener('click', function () { copy(p.pageUrl); });
       $('d-open').addEventListener('click', function () { openLink(p.pageUrl); });
       $('d-copyp').addEventListener('click', function () { copy(d.adParams); });
@@ -414,6 +420,21 @@
         });
       });
     }).catch(function (e) { body.innerHTML = '<div class="gp-empty">' + esc(errText(e)) + '</div>'; });
+  }
+
+  function checkConn(p) {
+    var btn = $('d-check'), box = $('d-conn');
+    btn.disabled = true; box.innerHTML = '<div class="gp-sub">Checking...</div>';
+    api('/api/projects/' + p.id + '/check', { method: 'POST' }).then(function (d) {
+      var good = d.botOk && d.isAdmin && d.canInvite && d.webhookOk;
+      box.innerHTML = '<div class="gp-ok ' + (good ? 'good' : 'warn') + '">' +
+        (d.botOk ? '&#10003; Bot works' : '&#10007; Bot cannot reach the channel') + '<br>' +
+        (d.isAdmin ? '&#10003; Bot is admin' : '&#10007; Bot is not admin') + '<br>' +
+        (d.canInvite ? '&#10003; Can create invite links' : '&#10007; Missing "Invite users via link" permission') + '<br>' +
+        (d.webhookOk ? '&#10003; Webhook points to this project' : '&#10007; Webhook is not set to this project') +
+        (d.webhookError ? '<br>Telegram: ' + esc(d.webhookError) : '') + (d.error ? '<br>' + esc(d.error) : '') + '</div>';
+    }).catch(function (e) { box.innerHTML = '<div class="gp-ok bad">' + esc(errText(e)) + '</div>'; })
+      .then(function () { btn.disabled = false; });
   }
 
   function testEvent(p) {

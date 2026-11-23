@@ -17,6 +17,7 @@
   padding-top:env(safe-area-inset-top,0px);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{scroll-padding-top:84px}
 html,body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;min-height:100%}
 body{background:radial-gradient(800px 420px at 50% -140px,rgba(59,130,246,.18),transparent 70%),radial-gradient(500px 300px at 100% 100%,rgba(139,92,246,.08),transparent 70%),var(--bg);background-attachment:fixed;overflow-x:hidden}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:60}
@@ -36,7 +37,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .splash-title{font-size:24px;font-weight:800;letter-spacing:.14em;text-align:center;color:#fff;text-shadow:0 0 8px var(--blue),0 0 26px rgba(59,130,246,.75)}
 
 /* Header */
-header{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:rgba(7,9,19,.82);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line);box-shadow:0 8px 28px rgba(59,130,246,.08)}
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:rgba(7,9,19,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid var(--line);box-shadow:0 8px 28px rgba(59,130,246,.08)}
 .brand{display:flex;align-items:center;gap:10px}
 .mini-logo{position:relative;overflow:hidden;width:44px;height:44px;border-radius:50%;border:2px solid var(--blue);box-shadow:var(--glow-b);display:grid;place-items:center;background:#000;color:var(--yellow);font-weight:800;font-size:15px}
 .brand-name{font-weight:800;font-size:17px;letter-spacing:.06em}
@@ -47,8 +48,8 @@ header{position:sticky;top:env(safe-area-inset-top,0px);z-index:50;display:flex;
 .icon-btn:active{transform:scale(.92)}
 .icon-btn svg{width:20px;height:20px;stroke:var(--blue);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 
-/* Content */
-main{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:640px;margin:0 auto}
+/* Content (header is in normal flow + sticky, so content always starts below it) */
+main{display:block;position:relative;padding:22px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:640px;margin:0 auto}
 .view{display:none;animation:in .35s ease}
 .view.active{display:block}
 @keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
@@ -56,12 +57,12 @@ main{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:6
 .acc-sub[hidden]{display:none}
 
 /* ===== HOME ===== */
-.welcome{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:4px 2px 16px}
+.welcome{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:6px 2px 18px}
 .w-hey{font-size:15px;font-weight:600;color:#9db0d6}
 .w-hey b{color:#fff;font-weight:800}
 .wave{display:inline-block;margin-left:4px;transform-origin:70% 70%;animation:wave 2.4s ease-in-out 1s 2}
 @keyframes wave{0%,60%,100%{transform:rotate(0)}10%,30%{transform:rotate(14deg)}20%,40%{transform:rotate(-8deg)}50%{transform:rotate(10deg)}}
-.w-title{margin-top:4px;font-size:clamp(24px,7.4vw,30px);line-height:1.15;font-weight:900;color:#fff}
+.w-title{margin-top:4px;font-size:clamp(24px,7.4vw,30px);line-height:1.2;font-weight:900;color:#fff}
 .w-title b{display:block;letter-spacing:.04em;background:linear-gradient(90deg,#60a5fa,#a78bfa 55%,#fde047);-webkit-background-clip:text;background-clip:text;color:transparent}
 .welcome .avatar{width:64px;height:64px}
 
@@ -97,8 +98,8 @@ main{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:6
 .f-btn svg{width:15px;height:15px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 
 /* Thumbnails (live mini previews) + selected check */
-.thumb{position:relative;overflow:hidden;aspect-ratio:3/4;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:#000}
-.thumb iframe{position:absolute;left:0;top:0;width:390px;height:520px;border:0;transform-origin:0 0;pointer-events:none;background:#000}
+.thumb{position:relative;overflow:hidden;aspect-ratio:3/4;border-radius:14px;border:1px solid rgba(255,255,255,.08);background:#0b1120}
+.thumb iframe{position:absolute;left:0;top:0;width:390px;height:520px;border:0;transform-origin:0 0;pointer-events:none;background:#fff}
 .check{position:absolute;top:7px;right:7px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;background:var(--ac,#22c55e);box-shadow:0 0 14px var(--acb,rgba(34,197,94,.5));transform:scale(0);transition:transform .35s cubic-bezier(.3,1.7,.5,1)}
 .check svg{width:14px;height:14px;stroke:#05070f;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
 .is-sel .check{transform:scale(1)}
@@ -131,6 +132,7 @@ main{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:6
 .dcard{--ac:#22c55e;--acb:rgba(34,197,94,.4);position:relative;flex:0 0 152px;scroll-snap-align:center;padding:10px;border-radius:20px;background:linear-gradient(160deg,rgba(255,255,255,.05),rgba(11,17,32,.97) 60%);border:1px solid var(--line);cursor:pointer;transition:transform .3s cubic-bezier(.3,1.5,.5,1),border-color .25s,box-shadow .25s}
 .dcard:active{transform:scale(.97)}
 .dcard.is-sel{transform:translateY(-4px) scale(1.03);border-color:var(--ac);box-shadow:0 0 28px var(--acb),0 10px 26px rgba(0,0,0,.4)}
+.dcard.is-view{border-color:rgba(255,255,255,.35)}
 .d-name{margin-top:10px;font-size:13.5px;font-weight:800;color:#fff;transition:color .25s}
 .dcard.is-sel .d-name{color:var(--ac)}
 .d-tag{margin-top:2px;min-height:30px;font-size:11px;color:var(--muted);line-height:1.4}
@@ -145,7 +147,7 @@ main{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:6
 .sp-text small{display:block;font-size:9px;font-weight:800;letter-spacing:.18em;color:var(--green)}
 .sp-text b{display:block;margin-top:2px;font-size:15px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sp-text span{display:block;margin-top:1px;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.buy-btn{flex:0 0 auto;padding:14px 26px;border-radius:14px;font-size:14px;font-weight:900;letter-spacing:.2em;color:#1a1400;background:linear-gradient(135deg,#fde047,#facc15 55%,#eab308);box-shadow:0 8px 24px rgba(250,204,21,.35),inset 0 1px 0 rgba(255,255,255,.35);transition:transform .15s}
+.buy-btn{flex:0 0 auto;padding:14px 20px;border-radius:14px;font-size:13px;font-weight:900;letter-spacing:.14em;color:#1a1400;background:linear-gradient(135deg,#fde047,#facc15 55%,#eab308);box-shadow:0 8px 24px rgba(250,204,21,.35),inset 0 1px 0 rgba(255,255,255,.35);transition:transform .15s;white-space:nowrap}
 .buy-btn:active{transform:scale(.95)}
 
 /* ===== Preview modal ===== */
@@ -178,14 +180,12 @@ main{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:6
 .st-failed{--c:#f87171;--cb:rgba(248,113,113,.14)}
 .st-cancelled{--c:#94a3b8;--cb:rgba(148,163,184,.14)}
 .st-refunded{--c:#a78bfa;--cb:rgba(167,139,250,.14)}
-
 .fpills{display:flex;gap:8px;overflow-x:auto;margin:0 -16px;padding:2px 16px 12px;scrollbar-width:none}
 .fpills::-webkit-scrollbar{display:none}
 .fp{flex:0 0 auto;display:flex;align-items:center;gap:7px;padding:9px 14px;border-radius:999px;font-size:12px;font-weight:700;color:var(--muted);border:1px solid var(--line);background:rgba(11,17,32,.9);white-space:nowrap;transition:all .2s}
 .fp .n{min-width:20px;padding:1px 6px;border-radius:999px;font-size:11px;background:rgba(255,255,255,.08);color:var(--text)}
 .fp.on{color:#fff;background:linear-gradient(135deg,#3b82f6,#8b5cf6);border-color:transparent;box-shadow:0 6px 20px rgba(99,102,241,.4)}
 .fp.on .n{background:rgba(0,0,0,.2)}
-
 .ocard{display:flex;align-items:center;gap:12px;width:100%;padding:14px;text-align:left;border-radius:18px;background:linear-gradient(160deg,rgba(255,255,255,.045),rgba(11,17,32,.97) 60%);border:1px solid var(--line);transition:transform .15s,border-color .2s}
 .ocard:active{transform:scale(.985)}
 .o-ico{flex:0 0 auto;width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--cb);border:1px solid var(--c)}
@@ -197,14 +197,12 @@ main{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:6
 .o-side{flex:0 0 auto;text-align:right}
 .o-amt{font-size:15px;font-weight:800;color:#fff}
 .chip-s{display:inline-block;margin-top:5px;padding:2px 8px;border-radius:6px;font-size:9px;font-weight:800;letter-spacing:.1em;color:var(--c);background:var(--cb)}
-
 .obanner{display:flex;align-items:center;gap:14px;padding:18px;border-radius:22px;background:linear-gradient(135deg,var(--cb),rgba(11,17,32,.97));border:1px solid var(--c)}
 .obanner .o-ico{width:52px;height:52px}
 .obanner .o-ico svg{width:24px;height:24px}
 .ob-label{font-size:18px;font-weight:900;color:var(--c);letter-spacing:.04em}
 .ob-text{margin-top:3px;font-size:12px;color:#b6c0dc;line-height:1.5}
 .ob-amt{margin-left:auto;font-size:18px;font-weight:900;color:#fff;white-space:nowrap}
-
 .dcard-box{margin-top:14px;padding:16px;border-radius:20px;background:linear-gradient(160deg,rgba(255,255,255,.045),rgba(11,17,32,.97) 60%);border:1px solid var(--line)}
 .box-title{margin-bottom:6px;font-size:11px;font-weight:800;letter-spacing:.18em;color:var(--muted)}
 .irow{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px}
@@ -212,7 +210,6 @@ main{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:6
 .irow>span{color:var(--muted);flex:0 0 auto}
 .irow>b{color:#fff;text-align:right;word-break:break-word;font-weight:700}
 .copy-btn{margin-left:8px;padding:3px 9px;border-radius:8px;font-size:10px;font-weight:800;letter-spacing:.08em;color:#93c5fd;border:1px solid rgba(96,165,250,.45);background:rgba(59,130,246,.08)}
-
 .tl{position:relative;margin-top:8px;padding-left:28px}
 .tl-step{position:relative;padding-bottom:18px}
 .tl-step:last-child{padding-bottom:0}
@@ -225,13 +222,11 @@ main{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:6
 .tl-step.refund::before{border-color:#a78bfa;background:#a78bfa}
 .tl-step b{display:block;font-size:13.5px;color:#fff}
 .tl-step span{display:block;margin-top:2px;font-size:11.5px;color:var(--muted)}
-
 .act-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
 .btn-sm{width:100%;padding:11px 8px;border-radius:12px;font-size:11px;font-weight:800;letter-spacing:.1em}
 .btn-red{background:linear-gradient(135deg,#f87171,#ef4444)!important;box-shadow:0 8px 20px rgba(239,68,68,.3)!important}
 .btn-amber{background:linear-gradient(135deg,#fbbf24,#f59e0b)!important;color:#1a1000!important;box-shadow:0 8px 20px rgba(245,158,11,.3)!important}
 .btn-gray{background:linear-gradient(135deg,#64748b,#475569)!important;box-shadow:none!important}
-
 .refresh-btn{display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:rgba(11,17,32,.9)}
 .refresh-btn svg{width:18px;height:18px;stroke:#93c5fd;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .refresh-btn:active svg{transform:rotate(180deg);transition:transform .3s}
@@ -253,14 +248,12 @@ main{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:6
 .acc-tag{flex:0 0 auto;align-self:flex-start;margin-top:4px;padding:4px 10px;border-radius:999px;font-size:9px;font-weight:800;letter-spacing:.16em;color:#a5b4fc;border:1px solid rgba(139,92,246,.35);background:rgba(139,92,246,.10)}
 .badge-admin{flex:0 0 auto;padding:1px 8px;border-radius:999px;font-size:9px;font-weight:800;letter-spacing:.1em;color:#1a1400;background:var(--yellow);box-shadow:0 0 12px rgba(250,204,21,.45)}
 .badge-admin[hidden]{display:none}
-
 .skeleton .p-name,.skeleton .p-user,.skeleton .p-id{color:transparent;background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.10),rgba(255,255,255,.04));background-size:200% 100%;animation:shimmer 1.4s linear infinite;border-radius:8px;border-color:transparent}
 .skeleton .p-id b,.skeleton .p-id svg{color:transparent;stroke:transparent}
 @keyframes shimmer{to{background-position:-200% 0}}
-
 .acc-error{margin-top:14px;padding:14px 16px;border-radius:14px;border:1px solid rgba(248,113,113,.35);background:rgba(248,113,113,.08);color:#fca5a5;font-size:13px;line-height:1.5}
 .acc-error[hidden]{display:none}
-
+.acc-error button{display:inline-block;margin-top:8px;padding:8px 14px;border-radius:10px;font-size:11px;font-weight:800;letter-spacing:.1em;color:#fff;background:rgba(248,113,113,.25);border:1px solid rgba(248,113,113,.5)}
 .balance-card{position:relative;margin-top:14px;padding:20px;border-radius:22px;overflow:hidden;background:linear-gradient(135deg,#2563eb 0%,#5b50f0 52%,#8b5cf6 100%);border:1px solid rgba(255,255,255,.18);box-shadow:0 12px 34px rgba(91,80,240,.38),inset 0 1px 0 rgba(255,255,255,.22)}
 .balance-card::after{content:"";position:absolute;right:-50px;top:-60px;width:190px;height:190px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.22),transparent 70%);pointer-events:none}
 .bal-label{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.18em;color:rgba(255,255,255,.78)}
@@ -270,11 +263,9 @@ main{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:6
 .bal-num{font-size:40px;letter-spacing:.01em;line-height:1.1;word-break:break-all}
 .bal-note{margin-top:8px;font-size:12px;color:rgba(255,255,255,.72)}
 .skeleton-bal .bal-num{color:transparent;background:linear-gradient(90deg,rgba(255,255,255,.10),rgba(255,255,255,.28),rgba(255,255,255,.10));background-size:200% 100%;animation:shimmer 1.4s linear infinite;border-radius:10px}
-
 .deposit-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;margin-top:14px;padding:16px;border-radius:16px;font-size:15px;font-weight:800;letter-spacing:.2em;color:#1a1400;background:linear-gradient(135deg,#fde047,#facc15 55%,#eab308);box-shadow:0 8px 26px rgba(250,204,21,.28),inset 0 1px 0 rgba(255,255,255,.35);transition:transform .15s,box-shadow .2s}
 .deposit-btn svg{width:20px;height:20px;stroke:#1a1400;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
 .deposit-btn:active{transform:scale(.98);box-shadow:0 4px 16px rgba(250,204,21,.22)}
-
 .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
 .stat-tile{display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;padding:18px 10px;border-radius:20px;background:linear-gradient(160deg,rgba(255,255,255,.045),rgba(11,17,32,.97) 60%);border:1px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.02);transition:transform .15s,border-color .2s}
 .stat-tile:active{transform:scale(.97)}
@@ -287,7 +278,6 @@ main{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:6
 .tile-title{font-size:12px;font-weight:800;letter-spacing:.1em;color:#fff}
 .tile-count{font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--yellow)}
 .skeleton-tile .tile-count{color:transparent;background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.10),rgba(255,255,255,.04));background-size:200% 100%;animation:shimmer 1.4s linear infinite;border-radius:6px}
-
 .panel{margin-top:14px;padding:18px;border-radius:22px;background:linear-gradient(160deg,rgba(255,255,255,.045),rgba(11,17,32,.97) 60%);border:1px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.02)}
 .panel[hidden]{display:none}
 .panel-head{display:flex;align-items:center;gap:12px}
@@ -302,7 +292,6 @@ main{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:6
 .ico-about{background:linear-gradient(145deg,#8b5cf6,#6366f1)}
 .panel-title{font-size:14px;font-weight:800;letter-spacing:.12em;color:#fff}
 .panel-sub{margin-top:3px;font-size:12px;color:var(--muted);line-height:1.4}
-
 .input-row{display:flex;gap:10px;margin-top:14px}
 .field{flex:1;min-width:0;width:100%;padding:13px 14px;border-radius:14px;border:1px solid var(--line);background:rgba(7,9,19,.7);color:#fff;font:inherit;font-size:14px;letter-spacing:.06em;outline:none;transition:border-color .2s,box-shadow .2s}
 .field::placeholder{color:#5b6788;letter-spacing:.02em}
@@ -315,32 +304,23 @@ main{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:6
 .btn-gold{color:#1a1400;background:linear-gradient(135deg,#fde047,#facc15 55%,#eab308);box-shadow:0 8px 22px rgba(250,204,21,.3)}
 .admin-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
 .admin-fields .full{grid-column:1 / -1}
-
 .msg{margin-top:10px;padding:10px 12px;border-radius:12px;font-size:12.5px;line-height:1.45}
 .msg[hidden]{display:none}
 .msg.ok{color:#86efac;background:rgba(34,197,94,.10);border:1px solid rgba(34,197,94,.3)}
 .msg.err{color:#fca5a5;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.3)}
-
 .sec-title{margin:24px 2px 10px;font-size:12px;font-weight:800;letter-spacing:.2em;color:var(--muted)}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .st{padding:14px;border-radius:18px;background:linear-gradient(160deg,rgba(255,255,255,.045),rgba(11,17,32,.97) 60%);border:1px solid var(--line)}
 .st-label{font-size:10px;font-weight:700;letter-spacing:.14em;color:var(--muted)}
 .st-val{margin-top:6px;font-size:17px;font-weight:800;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.st.c-blue .st-val{color:#60a5fa}
-.st.c-gold .st-val{color:#fde047}
-.st.c-pink .st-val{color:#f472b6}
-.st.c-violet .st-val{color:#a78bfa}
-.st.c-green .st-val{color:#4ade80}
-.st.c-red .st-val{color:#fb923c}
+.st.c-blue .st-val{color:#60a5fa}.st.c-gold .st-val{color:#fde047}.st.c-pink .st-val{color:#f472b6}.st.c-violet .st-val{color:#a78bfa}.st.c-green .st-val{color:#4ade80}.st.c-red .st-val{color:#fb923c}
 .skeleton-st .st-val{color:transparent;background:linear-gradient(90deg,rgba(255,255,255,.04),rgba(255,255,255,.10),rgba(255,255,255,.04));background-size:200% 100%;animation:shimmer 1.4s linear infinite;border-radius:6px}
-
 .menu{display:flex;flex-direction:column;gap:10px}
 .menu-item{display:flex;align-items:center;gap:12px;width:100%;padding:12px 14px;border-radius:18px;text-align:left;background:linear-gradient(160deg,rgba(255,255,255,.045),rgba(11,17,32,.97) 60%);border:1px solid var(--line);transition:transform .15s}
 .menu-item:active{transform:scale(.98)}
 .menu-item .panel-ico{width:40px;height:40px;border-radius:12px}
 .menu-text{flex:1;font-size:14px;font-weight:700;color:#fff;letter-spacing:.03em}
 .chev{width:18px;height:18px;stroke:var(--muted);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-
 .sub-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px}
 .sub-title{display:flex;align-items:center;gap:10px;font-size:19px;font-weight:800;color:#fff;min-width:0}
 .sub-title svg{width:22px;height:22px;stroke:#a78bfa;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto}
@@ -352,7 +332,6 @@ main{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:6
 .back-txt{display:flex;flex-direction:column;line-height:1.1;text-align:left}
 .back-txt small{font-size:8px;letter-spacing:.14em;color:var(--muted);font-weight:700}
 .back-txt b{font-size:12px;color:#fff}
-
 .tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
 .tab-pill{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px 6px;border-radius:999px;font-size:12px;font-weight:700;color:var(--muted);border:1px solid var(--line);background:rgba(11,17,32,.9);transition:all .2s}
 .tab-pill .n{min-width:20px;padding:1px 6px;border-radius:999px;font-size:11px;background:rgba(255,255,255,.08);color:var(--text)}
@@ -360,7 +339,6 @@ main{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:6
 .tab-pill.on-failed{color:#450a0a;background:linear-gradient(135deg,#fca5a5,#f87171);border-color:transparent;box-shadow:0 6px 20px rgba(248,113,113,.35)}
 .tab-pill.on-pending{color:#451a03;background:linear-gradient(135deg,#fcd34d,#f59e0b);border-color:transparent;box-shadow:0 6px 20px rgba(245,158,11,.35)}
 .tab-pill[class*="on-"] .n{background:rgba(0,0,0,.18);color:inherit}
-
 .list{display:flex;flex-direction:column;gap:10px}
 .row{display:flex;align-items:center;gap:12px;padding:14px;border-radius:18px;background:linear-gradient(160deg,rgba(255,255,255,.04),rgba(11,17,32,.97) 60%);border:1px solid var(--line)}
 .row-ico{flex:0 0 auto;width:42px;height:42px;border-radius:50%;display:grid;place-items:center}
@@ -377,19 +355,13 @@ main{padding:16px 16px calc(110px + env(safe-area-inset-bottom,0px));max-width:6
 .row-note{margin-top:3px;font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .row-side{flex:0 0 auto;text-align:right}
 .row-amt{font-size:15px;font-weight:800}
-.amt-credit,.amt-completed{color:var(--green)}
-.amt-debit,.amt-failed{color:var(--red)}
-.amt-pending{color:var(--amber)}
+.amt-credit,.amt-completed{color:var(--green)}.amt-debit,.amt-failed{color:var(--red)}.amt-pending{color:var(--amber)}
 .chip{display:inline-block;margin-top:4px;padding:2px 8px;border-radius:6px;font-size:9px;font-weight:800;letter-spacing:.1em}
-.chip-completed{color:var(--green);background:rgba(34,197,94,.14)}
-.chip-failed{color:var(--red);background:rgba(248,113,113,.14)}
-.chip-pending{color:var(--amber);background:rgba(245,158,11,.14)}
-
+.chip-completed{color:var(--green);background:rgba(34,197,94,.14)}.chip-failed{color:var(--red);background:rgba(248,113,113,.14)}.chip-pending{color:var(--amber);background:rgba(245,158,11,.14)}
 .empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:40px 20px;border-radius:22px;border:1px solid var(--line);background:linear-gradient(160deg,rgba(255,255,255,.03),rgba(11,17,32,.97) 60%)}
 .empty svg{width:46px;height:46px;stroke:#475569;fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;margin-bottom:6px}
 .empty b{font-size:17px;color:#fff}
 .empty span{font-size:13px;color:var(--muted)}
-
 .info-card{padding:20px 18px;border-radius:22px;background:linear-gradient(160deg,rgba(255,255,255,.045),rgba(11,17,32,.97) 60%);border:1px solid var(--line);box-shadow:0 8px 24px rgba(0,0,0,.35)}
 .info-sec{margin-bottom:20px}
 .info-sec:last-child{margin-bottom:0}
@@ -419,7 +391,7 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
   .brand-name{font-size:15px}
   .fcard .thumb{flex-basis:92px;width:92px}
   .dcard{flex-basis:140px}
-  .buy-btn{padding:13px 18px;letter-spacing:.14em}
+  .buy-btn{padding:13px 14px;letter-spacing:.1em}
   .selpanel{gap:10px}
 }
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;transition-duration:.01s!important}}
@@ -492,11 +464,11 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
         <button class="stage-full" id="stageFull" type="button">FULL SCREEN</button>
       </div>
       <div class="stage-body" id="stageBody">
-        <iframe id="stageFrame" sandbox title="Selected landing page preview" hidden></iframe>
+        <iframe id="stageFrame" title="Landing page preview" hidden></iframe>
         <div class="stage-ph" id="stagePh">
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 14h8"/></svg>
-          <b>No design selected</b>
-          <span>Tap any design below to see the complete page here.</span>
+          <b id="stagePhTitle">Loading preview...</b>
+          <span id="stagePhText">Please wait a moment.</span>
         </div>
       </div>
     </div>
@@ -519,7 +491,6 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a9 9 0 11-3-6.7"/><path d="M21 4v5h-5"/></svg>
         </button>
       </div>
-
       <div class="fpills" id="ordPills">
         <button class="fp on" type="button" data-f="all">All Orders <span class="n">0</span></button>
         <button class="fp" type="button" data-f="active">Active <span class="n">0</span></button>
@@ -527,14 +498,10 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
         <button class="fp" type="button" data-f="successful">Successful <span class="n">0</span></button>
         <button class="fp" type="button" data-f="failed">Failed <span class="n">0</span></button>
       </div>
-
       <div class="list" id="ordList"></div>
-
       <div class="panel" id="ordAdmin" hidden>
         <div class="panel-head">
-          <div class="panel-ico ico-admin">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-          </div>
+          <div class="panel-ico ico-admin"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></div>
           <div>
             <div class="panel-title">ADMIN: CREATE TEST ORDER</div>
             <div class="panel-sub">Creates an order on your own account and charges your wallet.</div>
@@ -594,10 +561,7 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
           <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="6" width="19" height="13" rx="3"/><path d="M2.5 10h19"/><circle cx="17" cy="14.5" r="1.2"/></svg>
           TOTAL BALANCE
         </div>
-        <div class="bal-amount">
-          <span class="bal-cur">&#8377;</span>
-          <span class="bal-num" id="balNum">0000.00</span>
-        </div>
+        <div class="bal-amount"><span class="bal-cur">&#8377;</span><span class="bal-num" id="balNum">0000.00</span></div>
         <div class="bal-note">Available in your GDX STORE wallet (INR)</div>
       </div>
 
@@ -608,16 +572,12 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
 
       <div class="stat-grid">
         <button class="stat-tile tile-dep skeleton-tile" id="depTile" type="button">
-          <div class="tile-icon">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>
-          </div>
+          <div class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg></div>
           <div class="tile-title">DEPOSIT HISTORY</div>
           <div class="tile-count" id="depCount">0 RECORDS</div>
         </button>
         <button class="stat-tile tile-txn skeleton-tile" id="txnTile" type="button">
-          <div class="tile-icon">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>
-          </div>
+          <div class="tile-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg></div>
           <div class="tile-title">TRANSACTIONS</div>
           <div class="tile-count" id="txnCount">0 RECORDS</div>
         </button>
@@ -625,9 +585,7 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
 
       <div class="panel">
         <div class="panel-head">
-          <div class="panel-ico ico-gift">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12v9H4v-9"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/></svg>
-          </div>
+          <div class="panel-ico ico-gift"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 12v9H4v-9"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 010-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 000-5C13 2 12 7 12 7z"/></svg></div>
           <div>
             <div class="panel-title">GIFT CODE</div>
             <div class="panel-sub">Have a gift code? Enter it here to add money to your wallet.</div>
@@ -642,9 +600,7 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
 
       <div class="panel">
         <div class="panel-head">
-          <div class="panel-ico ico-support">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 14v-2a9 9 0 0118 0v2"/><path d="M3 14a2 2 0 012-2h1v6H5a2 2 0 01-2-2z"/><path d="M21 14a2 2 0 00-2-2h-1v6h1a2 2 0 002-2z"/><path d="M18 18v1a3 3 0 01-3 3h-3"/></svg>
-          </div>
+          <div class="panel-ico ico-support"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 14v-2a9 9 0 0118 0v2"/><path d="M3 14a2 2 0 012-2h1v6H5a2 2 0 01-2-2z"/><path d="M21 14a2 2 0 00-2-2h-1v6h1a2 2 0 002-2z"/><path d="M18 18v1a3 3 0 01-3 3h-3"/></svg></div>
           <div>
             <div class="panel-title">CUSTOMER CARE</div>
             <div class="panel-sub">Need help with an order, deposit or refund? Our support team is here for you.</div>
@@ -685,9 +641,7 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
 
       <div class="panel" id="adminPanel" hidden>
         <div class="panel-head">
-          <div class="panel-ico ico-admin">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
-          </div>
+          <div class="panel-ico ico-admin"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></div>
           <div>
             <div class="panel-title">ADMIN: CREATE GIFT CODE</div>
             <div class="panel-sub">Leave the code empty to auto-generate one.</div>
@@ -707,14 +661,8 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
 
     <div class="acc-sub" id="accDeposits" hidden>
       <div class="sub-head">
-        <div class="sub-title">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>
-          Deposit History
-        </div>
-        <button class="back-btn" type="button" data-back>
-          <span class="back-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></span>
-          <span class="back-txt"><small>BACK TO</small><b>Account</b></span>
-        </button>
+        <div class="sub-title"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>Deposit History</div>
+        <button class="back-btn" type="button" data-back><span class="back-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></span><span class="back-txt"><small>BACK TO</small><b>Account</b></span></button>
       </div>
       <div class="tabs" id="depTabs">
         <button class="tab-pill" type="button" data-tab="completed">Complete <span class="n" id="nCompleted">0</span></button>
@@ -726,28 +674,16 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
 
     <div class="acc-sub" id="accTxns" hidden>
       <div class="sub-head">
-        <div class="sub-title">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>
-          Transaction History
-        </div>
-        <button class="back-btn" type="button" data-back>
-          <span class="back-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></span>
-          <span class="back-txt"><small>BACK TO</small><b>Account</b></span>
-        </button>
+        <div class="sub-title"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>Transaction History</div>
+        <button class="back-btn" type="button" data-back><span class="back-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></span><span class="back-txt"><small>BACK TO</small><b>Account</b></span></button>
       </div>
       <div class="list" id="txnList"></div>
     </div>
 
     <div class="acc-sub" id="accInfo" hidden>
       <div class="sub-head">
-        <div class="sub-title">
-          <span class="ico-wrap" id="infoIco"></span>
-          <span id="infoTitle"></span>
-        </div>
-        <button class="back-btn" type="button" data-back>
-          <span class="back-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></span>
-          <span class="back-txt"><small>BACK TO</small><b>Account</b></span>
-        </button>
+        <div class="sub-title"><span class="ico-wrap" id="infoIco"></span><span id="infoTitle"></span></div>
+        <button class="back-btn" type="button" data-back><span class="back-ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></span><span class="back-txt"><small>BACK TO</small><b>Account</b></span></button>
       </div>
       <div class="info-card" id="infoBody"></div>
     </div>
@@ -757,7 +693,7 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
 
 <!-- Selected design panel (Landing Pages only) -->
 <div class="selpanel" id="selPanel" hidden>
-  <div class="thumb"><iframe id="spFrame" sandbox tabindex="-1" aria-hidden="true" title="Selected design thumbnail"></iframe></div>
+  <div class="thumb"><iframe id="spFrame" tabindex="-1" aria-hidden="true" title="Selected design thumbnail"></iframe></div>
   <div class="sp-text">
     <small>&#10003; SELECTED DESIGN</small>
     <b id="spName">Design</b>
@@ -769,20 +705,14 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
 <!-- Full screen preview -->
 <div class="modal" id="modal" hidden>
   <div class="m-top">
-    <button class="m-close" id="mClose" type="button" aria-label="Close preview">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
-    </button>
+    <button class="m-close" id="mClose" type="button" aria-label="Close preview"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     <div class="m-title"><b id="mName">Preview</b><small>FULL PREVIEW</small></div>
     <div class="m-modes">
-      <button class="m-mode on" type="button" data-mode="mobile" aria-label="Mobile view">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>
-      </button>
-      <button class="m-mode" type="button" data-mode="desktop" aria-label="Desktop view">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="4" width="19" height="12.5" rx="2"/><path d="M8 20.5h8M12 16.5v4"/></svg>
-      </button>
+      <button class="m-mode on" type="button" data-mode="mobile" aria-label="Mobile view"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg></button>
+      <button class="m-mode" type="button" data-mode="desktop" aria-label="Desktop view"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="2.5" y="4" width="19" height="12.5" rx="2"/><path d="M8 20.5h8M12 16.5v4"/></svg></button>
     </div>
   </div>
-  <div class="m-stage" id="mStage"><iframe id="mFrame" sandbox title="Landing page preview"></iframe></div>
+  <div class="m-stage" id="mStage"><iframe id="mFrame" title="Landing page preview"></iframe></div>
   <div class="m-bottom"><button class="btn-primary btn-sm" id="mSelect" type="button" style="padding:15px;font-size:13px">USE THIS DESIGN</button></div>
 </div>
 
@@ -795,20 +725,21 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
   <button class="tab" data-go="orders"><svg viewBox="0 0 24 24"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>Orders</button>
   <button class="tab" data-go="account"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>Account</button>
 </nav>
-
 <script>
 (function(){
+  'use strict';
   // Telegram Mini App setup
   var tg = window.Telegram && window.Telegram.WebApp;
-  if (tg) { tg.ready(); tg.expand(); }
-  var hasAuth = !!(tg && tg.initData);
+  try { if (tg) { tg.ready(); tg.expand(); if (tg.disableVerticalSwipes) tg.disableVerticalSwipes(); } } catch (e) {}
+  function authed(){ return !!(tg && tg.initData); }
   var isAdmin = false;
 
   // Splash screen
   setTimeout(function(){
     var s=document.getElementById('splash');
+    if (!s) return;
     s.classList.add('hide');
-    setTimeout(function(){s.remove()},900);
+    setTimeout(function(){ if (s.parentNode) s.parentNode.removeChild(s); },900);
   },2000);
 
   // ---------- Shared helpers ----------
@@ -820,16 +751,24 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
       headers['Content-Type'] = 'application/json';
       init.body = JSON.stringify(options.body);
     }
+    var ctrl = window.AbortController ? new AbortController() : null;
+    var timer = null;
+    if (ctrl) { init.signal = ctrl.signal; timer = setTimeout(function(){ ctrl.abort(); }, 15000); }
     return fetch(path, init).then(function(res){
+      if (timer) clearTimeout(timer);
       return res.json().then(function(data){
         if (!res.ok) throw new Error(data.error || 'Request failed');
         return data;
-      });
+      }, function(){ throw new Error('Unexpected server response (' + res.status + ')'); });
+    }, function(err){
+      if (timer) clearTimeout(timer);
+      throw (err && err.name === 'AbortError') ? new Error('The request timed out. Please try again.') : err;
     });
   }
 
   function friendlyError(e){
-    if (!e || e.name === 'TypeError' || e instanceof SyntaxError) return 'Network problem. Please try again.';
+    if (!e) return 'Something went wrong. Please try again.';
+    if (e.name === 'TypeError') return 'Network problem. Please try again.';
     return e.message || 'Something went wrong. Please try again.';
   }
 
@@ -867,16 +806,12 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
   function formatINR(n){
     return new Intl.NumberFormat('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
   }
-
   function formatDate(iso){
     var d = new Date(iso);
     if (isNaN(d.getTime())) return '';
     return d.toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
-
-  function recordsText(n){
-    return n + (n === 1 ? ' RECORD' : ' RECORDS');
-  }
+  function recordsText(n){ return n + (n === 1 ? ' RECORD' : ' RECORDS'); }
 
   function emptyBox(title, sub){
     var box = el('div', 'empty');
@@ -885,7 +820,6 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     box.appendChild(el('span', '', sub));
     return box;
   }
-
   function setMsg(node, text, kind){
     node.textContent = text;
     node.className = 'msg ' + kind;
@@ -900,20 +834,26 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     clearTimeout(toastTimer);
     toastTimer = setTimeout(function(){ t.className = 'toast'; }, 2800);
   }
-
   function confirmAction(msg, ok){
     if (tg && tg.showConfirm) { tg.showConfirm(msg, function(yes){ if (yes) ok(); }); }
     else if (window.confirm(msg)) { ok(); }
   }
 
   var accError = document.getElementById('accError');
-  function showError(msg){
+  function showError(msg, retry){
     accError.textContent = msg;
+    if (retry) {
+      var b = el('button', '', 'TRY AGAIN');
+      b.type = 'button';
+      b.addEventListener('click', retry);
+      accError.appendChild(document.createElement('br'));
+      accError.appendChild(b);
+    }
     accError.hidden = false;
   }
 
   function setAvatar(img, url){
-    if (!url) return;
+    if (!url || !img) return;
     img.onload = function(){ img.classList.add('show'); };
     img.onerror = function(){ img.classList.remove('show'); };
     img.src = url;
@@ -932,7 +872,6 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
       (state.view === 'orders' && state.ord === 'detail');
     if (need) tg.BackButton.show(); else tg.BackButton.hide();
   }
-
   function handleBack(){
     if (state.modal) { closeModal(); return; }
     if (state.view === 'account' && state.acc !== 'main') { showAcc('main'); return; }
@@ -946,17 +885,15 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     });
     state.acc = name;
     refreshBack();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo(0, 0);
   }
-
   function showOrders(name){
     document.getElementById('ordListPage').hidden = (name !== 'list');
     document.getElementById('ordDetailPage').hidden = (name !== 'detail');
     state.ord = name;
     refreshBack();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo(0, 0);
   }
-
   function go(id){
     state.view = id;
     views.forEach(function(v){ v.classList.toggle('active', v.id === id); });
@@ -968,7 +905,7 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     updatePanel();
     if (id === 'landing') setTimeout(scrollStripToSelected, 80);
     refreshBack();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo(0, 0);
   }
   document.querySelectorAll('[data-go]').forEach(function(b){
     b.addEventListener('click', function(){ go(b.dataset.go); });
@@ -979,12 +916,19 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
   document.getElementById('ordBack').addEventListener('click', function(){ showOrders('list'); });
 
   // =====================================================
-  //  LANDING PAGE DESIGNS
-  //  One data source (/api/landing/templates) + one card component,
-  //  used by BOTH the Home page and the Landing Pages section.
+  //  LANDING PAGE DESIGNS (shared by Home and Landing Pages)
   // =====================================================
+  // Built-in copy of the four designs. It is used if the server list cannot be loaded,
+  // so the gallery and the live preview are never empty.
+  var FALLBACK_DESIGNS = [
+    { key: 'premium-dark',    name: 'Premium Dark',    tagline: 'Elegant black and gold luxury look' },
+    { key: 'modern-gradient', name: 'Modern Gradient', tagline: 'Vibrant colors with glass cards' },
+    { key: 'minimal-premium', name: 'Minimal Premium', tagline: 'Clean, light and refined' },
+    { key: 'neon-tech',       name: 'Neon Tech',       tagline: 'Futuristic glowing neon style' }
+  ];
   var designs = [];
   var selectedKey = null;
+  var previewKey = null;
   var touched = false;
   var modalKey = null;
   var modalMode = 'mobile';
@@ -1011,10 +955,8 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     return null;
   }
   function designName(key){ var d = designOf(key); return d ? d.name : key; }
-
   function previewUrl(key){ return '/preview/landing/' + encodeURIComponent(key); }
 
-  // Shared card component. mode: 'home' (featured row) or 'lp' (gallery strip)
   function makeCard(t, mode){
     var a = accentOf(t.key);
     var card = el('div', mode === 'home' ? 'fcard' : 'dcard');
@@ -1027,7 +969,6 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     fr.src = previewUrl(t.key);
     fr.loading = 'lazy';
     fr.tabIndex = -1;
-    fr.setAttribute('sandbox', '');
     fr.setAttribute('title', t.name + ' preview');
     fr.setAttribute('aria-hidden', 'true');
     thumb.appendChild(fr);
@@ -1072,6 +1013,7 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     });
     applySelection();
     layoutThumbs();
+    setTimeout(layoutThumbs, 300);
   }
 
   function layoutThumbs(){
@@ -1085,26 +1027,39 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
   window.addEventListener('resize', function(){ layoutThumbs(); if (state.modal) layoutModal(); });
 
   function scrollStripToSelected(){
-    var c = strip.querySelector('.dcard.is-sel');
+    var c = strip.querySelector('.dcard.is-sel') || strip.querySelector('.dcard.is-view');
     if (!c || !strip.clientWidth) return;
     strip.scrollTo({ left: c.offsetLeft - (strip.clientWidth - c.offsetWidth) / 2, behavior: 'smooth' });
   }
 
+  function stagePlaceholder(title, text){
+    stageFrame.hidden = true;
+    stagePh.hidden = false;
+    document.getElementById('stagePhTitle').textContent = title;
+    document.getElementById('stagePhText').textContent = text;
+  }
+
+  // The Live Preview always shows a design: the chosen one, otherwise the one being browsed, otherwise the first.
+  function currentPreview(){
+    return selectedKey || previewKey || (designs[0] ? designs[0].key : null);
+  }
+
   function updateStage(){
-    if (!selectedKey) {
-      stageFrame.hidden = true;
-      stagePh.hidden = false;
-      stageName.textContent = 'LIVE PREVIEW';
-      return;
-    }
+    var key = currentPreview();
+    if (!key) { stagePlaceholder('Designs are loading', 'Please wait a moment.'); stageName.textContent = 'LIVE PREVIEW'; return; }
     stagePh.hidden = true;
     stageFrame.hidden = false;
-    stageName.textContent = designName(selectedKey).toUpperCase();
-    if (stageFrame.dataset.key !== selectedKey) {
-      stageFrame.dataset.key = selectedKey;
+    stageName.textContent = designName(key).toUpperCase();
+    if (stageFrame.dataset.key !== key) {
+      stageFrame.dataset.key = key;
       stageBody.classList.add('fade');
-      stageFrame.src = previewUrl(selectedKey);
+      stageFrame.src = previewUrl(key);
       setTimeout(function(){ stageBody.classList.remove('fade'); }, 900);
+      fetch(previewUrl(key)).then(function(r){
+        if (!r.ok) stagePlaceholder('Preview unavailable', 'This design could not be loaded (error ' + r.status + ').');
+      }).catch(function(){
+        stagePlaceholder('Preview unavailable', 'Check your internet connection and try again.');
+      });
     }
   }
   stageFrame.addEventListener('load', function(){ stageBody.classList.remove('fade'); });
@@ -1126,9 +1081,11 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
   }
 
   function applySelection(){
+    var viewKey = currentPreview();
     document.querySelectorAll('.dcard, .fcard').forEach(function(c){
       var on = c.dataset.key === selectedKey;
       c.classList.toggle('is-sel', on);
+      c.classList.toggle('is-view', !on && c.dataset.key === viewKey && c.classList.contains('dcard'));
       if (c.classList.contains('dcard')) c.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
     updateStage();
@@ -1137,10 +1094,9 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     if (state.view === 'landing') scrollStripToSelected();
   }
 
-  // The design is chosen by tapping its card (there is no Select button).
   var saveTimer = null;
   function queueSave(key){
-    if (!hasAuth) return;
+    if (!authed()) return;
     clearTimeout(saveTimer);
     saveTimer = setTimeout(function(){
       api('/api/landing/select', { method: 'POST', body: { template: key } }).catch(function(e){
@@ -1152,55 +1108,61 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
   function setSelected(key){
     touched = true;
     selectedKey = key;
+    previewKey = key;
     applySelection();
     queueSave(key);
   }
-
   function chooseDesign(key){
-    if (key === selectedKey) { openPreview(key); return; }  // tapping the chosen one again = full screen view
+    if (key === selectedKey) { openPreview(key); return; }
     setSelected(key);
   }
-
-  // Home -> PREVIEW: open the Landing Pages section with that design shown in detail
   function previewFromHome(key){
     go('landing');
     setSelected(key);
   }
 
+  function useDesigns(list){
+    designs = (list && list.length) ? list : FALLBACK_DESIGNS;
+    buildGalleries();
+  }
   function loadDesigns(){
-    return fetch('/api/landing/templates').then(function(r){ return r.json(); }).then(function(d){
-      designs = d.templates || [];
-      buildGalleries();
-    }).catch(function(){
-      ['homeGallery', 'lpGallery'].forEach(function(id){
-        var box = document.getElementById(id);
-        box.textContent = '';
-        var msg = emptyBox('Could not load designs', 'Please check your internet and reopen the app.');
-        msg.style.flex = '1 0 100%';
-        box.appendChild(msg);
-      });
-    });
+    return fetch('/api/landing/templates').then(function(r){
+      if (!r.ok) throw new Error('bad status');
+      return r.json();
+    }).then(function(d){ useDesigns(d && d.templates); }).catch(function(){ useDesigns(null); });
   }
 
   function loadSelection(){
-    if (!hasAuth) return;
+    if (!authed()) return;
     api('/api/landing/selection').then(function(d){
-      if (touched) return;           // do not override a choice the user already made
+      if (touched) return;
       selectedKey = d.selected || null;
+      if (selectedKey) previewKey = selectedKey;
       applySelection();
     }).catch(function(){});
   }
 
-  // BUY: placeholder only. The purchase flow will be built later.
-  const projects = projectsModule.setup(app, {
-    getPool: () => pool,
-    isDbReady: () => dbReady,
-    requireTelegramAuth,
-    ensureUser: (u) => ensureUser(pool, u),
-    findTemplate,
-    baseUrl: 'https://' + RAILWAY_DOMAIN,
-    mainBotToken: BOT_TOKEN
-});
+  // ----- BUY NOW: opens the project creation form with the selected design -----
+  var projectsUiLoading = false;
+  function loadProjectsUi(cb){
+    if (window.GDXProjects) { cb(true); return; }
+    var existing = document.getElementById('projects-ui-script');
+    if (existing && !projectsUiLoading) existing.parentNode.removeChild(existing);
+    var s = document.createElement('script');
+    s.id = 'projects-ui-script';
+    s.src = '/projects-ui.js';
+    projectsUiLoading = true;
+    s.onload = function(){ projectsUiLoading = false; cb(!!window.GDXProjects); };
+    s.onerror = function(){ projectsUiLoading = false; cb(false); };
+    document.head.appendChild(s);
+  }
+  document.getElementById('buyBtn').addEventListener('click', function(){
+    if (!selectedKey) { toast('Please select a design first.', 'err'); return; }
+    loadProjectsUi(function(ok){
+      if (ok) window.GDXProjects.open(selectedKey);
+      else toast('The project form could not be loaded. Make sure projects-ui.js is uploaded to the server.', 'err');
+    });
+  });
 
   // ----- Full screen preview -----
   var modal = document.getElementById('modal');
@@ -1226,25 +1188,20 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
       mFrame.style.left = ((w - DW * s) / 2) + 'px';
     }
   }
-
   function updateModalSelect(){
     if (!modalKey) return;
     var on = modalKey === selectedKey;
     mSelect.textContent = on ? 'SELECTED \u2713' : 'USE THIS DESIGN';
     mSelect.classList.toggle('btn-sel-on', on);
   }
-
   function setMode(mode){
     modalMode = mode;
-    document.querySelectorAll('.m-mode').forEach(function(b){
-      b.classList.toggle('on', b.dataset.mode === mode);
-    });
+    document.querySelectorAll('.m-mode').forEach(function(b){ b.classList.toggle('on', b.dataset.mode === mode); });
     layoutModal();
   }
   document.querySelectorAll('.m-mode').forEach(function(b){
     b.addEventListener('click', function(){ setMode(b.dataset.mode); });
   });
-
   function openPreview(key){
     modalKey = key;
     document.getElementById('mName').textContent = designName(key);
@@ -1256,7 +1213,6 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     updateModalSelect();
     refreshBack();
   }
-
   function closeModal(){
     modal.hidden = true;
     state.modal = false;
@@ -1265,7 +1221,6 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     document.body.style.overflow = '';
     refreshBack();
   }
-
   document.getElementById('mClose').addEventListener('click', closeModal);
   mSelect.addEventListener('click', function(){
     var key = modalKey;
@@ -1273,8 +1228,8 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     if (key && key !== selectedKey) setSelected(key);
   });
   document.getElementById('stageFull').addEventListener('click', function(){
-    if (selectedKey) openPreview(selectedKey);
-    else toast('Tap a design first.', '');
+    var k = currentPreview();
+    if (k) openPreview(k); else toast('Designs are still loading.', '');
   });
 
   // =====================================================
@@ -1288,7 +1243,6 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     cancelled:  { label: 'Cancelled',  text: 'This order was cancelled.' },
     refunded:   { label: 'Refunded',   text: 'The amount was returned to your GDX STORE wallet.' }
   };
-
   var FILTERS = {
     all:        function(){ return true; },
     active:     function(s){ return s === 'processing'; },
@@ -1313,44 +1267,36 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
       b.querySelector('.n').textContent = counts[b.dataset.f];
       b.classList.toggle('on', b.dataset.f === ordState.filter);
     });
-
     ordList.textContent = '';
     var items = ordState.list.filter(function(o){ return FILTERS[ordState.filter](o.status); });
     if (!items.length) {
-      if (ordState.list.length) {
-        ordList.appendChild(emptyBox('No ' + FILTER_LABEL[ordState.filter], 'Try another filter.'));
-      } else {
-        ordList.appendChild(emptyBox('No orders yet', 'Your orders will appear here automatically when you purchase a service.'));
-      }
+      if (ordState.list.length) ordList.appendChild(emptyBox('No ' + FILTER_LABEL[ordState.filter], 'Try another filter.'));
+      else ordList.appendChild(emptyBox('No orders yet', 'Your orders will appear here automatically when you purchase a service.'));
       return;
     }
     items.forEach(function(o){
       var s = stKey(o.status);
       var card = el('button', 'ocard st-' + s);
       card.type = 'button';
-
       var ico = el('div', 'o-ico');
       ico.appendChild(svgIcon(ICON[s]));
       card.appendChild(ico);
-
       var main = el('div', 'o-main');
       main.appendChild(el('div', 'o-name', o.serviceName));
       main.appendChild(el('div', 'o-code', o.orderCode));
       main.appendChild(el('div', 'o-date', formatDate(o.createdAt)));
       card.appendChild(main);
-
       var side = el('div', 'o-side');
       side.appendChild(el('div', 'o-amt', '\u20B9' + formatINR(o.amount)));
       side.appendChild(el('span', 'chip-s', STATUS[s].label.toUpperCase()));
       card.appendChild(side);
-
       card.addEventListener('click', function(){ openOrder(o.id); });
       ordList.appendChild(card);
     });
   }
 
   function loadOrders(silent){
-    if (!hasAuth) {
+    if (!authed()) {
       ordList.textContent = '';
       ordList.appendChild(emptyBox('Open inside Telegram', 'Please open GDX STORE from the Telegram bot to see your orders.'));
       return;
@@ -1371,17 +1317,10 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
   }
 
   document.querySelectorAll('#ordPills .fp').forEach(function(b){
-    b.addEventListener('click', function(){
-      ordState.filter = b.dataset.f;
-      renderOrders();
-    });
+    b.addEventListener('click', function(){ ordState.filter = b.dataset.f; renderOrders(); });
   });
-  document.getElementById('ordRefresh').addEventListener('click', function(){
-    loadOrders(false);
-    toast('Orders refreshed', 'ok');
-  });
+  document.getElementById('ordRefresh').addEventListener('click', function(){ loadOrders(false); toast('Orders refreshed', 'ok'); });
 
-  // ----- Order details -----
   function infoRow(label, valueNode){
     var row = el('div', 'irow');
     row.appendChild(el('span', '', label));
@@ -1390,26 +1329,17 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     row.appendChild(b);
     return row;
   }
-
   function copyText(text){
     var done = function(){ toast('Order ID copied', 'ok'); };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(done).catch(function(){ toast(text, ''); });
-    } else {
-      toast(text, '');
-    }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done).catch(function(){ toast(text, ''); });
+    else toast(text, '');
   }
-
-  var ADMIN_NEXT = {
-    pending:    ['processing', 'completed', 'failed', 'cancelled'],
-    processing: ['completed', 'failed', 'cancelled']
-  };
+  var ADMIN_NEXT = { pending: ['processing', 'completed', 'failed', 'cancelled'], processing: ['completed', 'failed', 'cancelled'] };
   var NEXT_CLASS = { processing: '', completed: 'btn-green', failed: 'btn-red', cancelled: 'btn-gray' };
 
   function renderOrderDetail(o, txns){
     var s = stKey(o.status);
     ordDetail.textContent = '';
-
     var banner = el('div', 'obanner st-' + s);
     var ico = el('div', 'o-ico');
     ico.appendChild(svgIcon(ICON[s]));
@@ -1490,9 +1420,7 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
       aBox.appendChild(el('div', 'box-title', 'ADMIN: MANAGE THIS ORDER'));
       var next = ADMIN_NEXT[o.status] || [];
       var canRefund = o.status === 'failed' && !o.refundedAt;
-      if (!next.length && !canRefund) {
-        aBox.appendChild(el('div', 'ob-text', 'No further actions available for this order.'));
-      }
+      if (!next.length && !canRefund) aBox.appendChild(el('div', 'ob-text', 'No further actions available for this order.'));
       var grid = el('div', 'act-grid');
       next.forEach(function(target){
         var b = el('button', 'btn-sm btn-primary ' + (NEXT_CLASS[target] || ''), 'MARK ' + target.toUpperCase());
@@ -1532,25 +1460,15 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
       ordDetail.appendChild(emptyBox('Could not load this order', friendlyError(e)));
     });
   }
-
-  function afterOrderChange(id){
-    openOrder(id, true);
-    loadOrders(true);
-    loadWallet();
-    loadStats();
-  }
-
+  function afterOrderChange(id){ openOrder(id, true); loadOrders(true); loadWallet(); loadStats(); }
   function adminSetStatus(id, status){
     api('/api/admin/orders/' + encodeURIComponent(id) + '/status', { method: 'POST', body: { status: status } }).then(function(){
-      toast('Order marked as ' + status, 'ok');
-      afterOrderChange(id);
+      toast('Order marked as ' + status, 'ok'); afterOrderChange(id);
     }).catch(function(e){ toast(friendlyError(e), 'err'); });
   }
-
   function adminRefund(id){
     api('/api/admin/orders/' + encodeURIComponent(id) + '/refund', { method: 'POST' }).then(function(d){
-      toast('\u20B9' + formatINR(d.refunded) + ' refunded to wallet', 'ok');
-      afterOrderChange(id);
+      toast('\u20B9' + formatINR(d.refunded) + ' refunded to wallet', 'ok'); afterOrderChange(id);
     }).catch(function(e){ toast(friendlyError(e), 'err'); });
   }
 
@@ -1565,28 +1483,28 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
       setMsg(oaMsg, 'Order ' + d.orderCode + ' created.', 'ok');
       document.getElementById('oaName').value = '';
       document.getElementById('oaAmount').value = '';
-      loadOrders(true);
-      loadWallet();
-      loadStats();
-    }).catch(function(e){
-      setMsg(oaMsg, friendlyError(e), 'err');
-    }).then(function(){ oaCreate.disabled = false; });
+      loadOrders(true); loadWallet(); loadStats();
+    }).catch(function(e){ setMsg(oaMsg, friendlyError(e), 'err'); }).then(function(){ oaCreate.disabled = false; });
   });
 
-  // New orders and status changes show up automatically (refresh every 15 seconds)
   setInterval(function(){
-    if (!hasAuth || document.hidden || state.view !== 'orders') return;
+    if (!authed() || document.hidden || state.view !== 'orders') return;
     if (state.ord === 'list') loadOrders(true);
     else if (state.ord === 'detail' && ordState.currentId) openOrder(ordState.currentId, true);
   }, 15000);
   document.addEventListener('visibilitychange', function(){
-    if (!document.hidden && hasAuth && state.view === 'orders' && state.ord === 'list') loadOrders(true);
+    if (!document.hidden && authed() && state.view === 'orders' && state.ord === 'list') loadOrders(true);
   });
 
   // =====================================================
   //  ACCOUNT + personalised Home greeting
   // =====================================================
   var profileCard = document.getElementById('profileCard');
+  var balanceCard = document.getElementById('balanceCard');
+  var depTile = document.getElementById('depTile');
+  var txnTile = document.getElementById('txnTile');
+  var statsBox = document.getElementById('statsBox');
+  var STAT_IDS = ['stUser', 'stBalance', 'stBonus', 'stOrders', 'stDeposit', 'stSpent'];
 
   function setGreeting(name){
     var hey = document.getElementById('wHey');
@@ -1605,24 +1523,23 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     document.getElementById('adminBadge').hidden = !isAdmin;
     document.getElementById('adminPanel').hidden = !isAdmin;
     document.getElementById('ordAdmin').hidden = !isAdmin;
-
     setGreeting(u.firstName || (u.username ? '@' + u.username : ''));
     setAvatar(document.getElementById('pImg'), u.photoUrl);
     setAvatar(document.getElementById('hImg'), u.photoUrl);
     profileCard.classList.remove('skeleton');
   }
-
+  function profileFailed(){
+    document.getElementById('pName').textContent = 'Telegram User';
+    document.getElementById('pUser').textContent = 'Could not load profile';
+    document.getElementById('pId').textContent = '--';
+    profileCard.classList.remove('skeleton');
+  }
   function loadProfile(){
-    return api('/api/me').then(function(data){
-      renderProfile(data.user);
-    }).catch(function(){
-      showError('Could not verify your Telegram account. Please close and reopen the app.');
+    return api('/api/me').then(function(data){ renderProfile(data.user); }).catch(function(){
+      profileFailed();
+      showError('Could not verify your Telegram account. Please try again or reopen the app.', retryAccount);
     });
   }
-
-  var balanceCard = document.getElementById('balanceCard');
-  var depTile = document.getElementById('depTile');
-  var txnTile = document.getElementById('txnTile');
 
   function loadWallet(){
     return api('/api/wallet').then(function(data){
@@ -1634,7 +1551,7 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
       document.getElementById('balNum').textContent = '--';
       document.getElementById('depCount').textContent = '--';
       document.getElementById('txnCount').textContent = '--';
-      showError('Could not load your wallet right now. Please try again in a moment.');
+      showError('Could not load your wallet right now. Please try again in a moment.', retryAccount);
     }).then(function(){
       balanceCard.classList.remove('skeleton-bal');
       depTile.classList.remove('skeleton-tile');
@@ -1643,9 +1560,6 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
   }
 
   // Deposit button: UI placeholder only. Payment system comes in a later task.
-
-  var statsBox = document.getElementById('statsBox');
-  var STAT_IDS = ['stUser', 'stBalance', 'stBonus', 'stOrders', 'stDeposit', 'stSpent'];
 
   function loadStats(){
     return api('/api/stats').then(function(data){
@@ -1658,15 +1572,12 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
       document.getElementById('stSpent').textContent = '\u20B9' + formatINR(s.totalSpent);
     }).catch(function(){
       STAT_IDS.forEach(function(id){ document.getElementById(id).textContent = '--'; });
-    }).then(function(){
-      statsBox.classList.remove('skeleton-st');
-    });
+    }).then(function(){ statsBox.classList.remove('skeleton-st'); });
   }
 
   var giftInput = document.getElementById('giftInput');
   var claimBtn = document.getElementById('claimBtn');
   var giftMsg = document.getElementById('giftMsg');
-
   function claimGift(){
     var code = giftInput.value.trim();
     if (!code) { setMsg(giftMsg, 'Please enter a gift code.', 'err'); return; }
@@ -1674,24 +1585,17 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     api('/api/gift-code/claim', { method: 'POST', body: { code: code } }).then(function(d){
       setMsg(giftMsg, '\u20B9' + formatINR(d.amount) + ' has been added to your wallet.', 'ok');
       giftInput.value = '';
-      loadWallet();
-      loadStats();
-    }).catch(function(e){
-      setMsg(giftMsg, friendlyError(e), 'err');
-    }).then(function(){
-      claimBtn.disabled = false;
-    });
+      loadWallet(); loadStats();
+    }).catch(function(e){ setMsg(giftMsg, friendlyError(e), 'err'); }).then(function(){ claimBtn.disabled = false; });
   }
   claimBtn.addEventListener('click', claimGift);
   giftInput.addEventListener('keydown', function(e){ if (e.key === 'Enter') claimGift(); });
 
   var supportUrl = '';
   var supportMsg = document.getElementById('supportMsg');
-
   function loadConfig(){
     return api('/api/config').then(function(d){ supportUrl = d.supportUrl || ''; }).catch(function(){});
   }
-
   document.getElementById('supportBtn').addEventListener('click', function(){
     if (!supportUrl) { setMsg(supportMsg, 'Support link will be added soon.', 'err'); return; }
     supportMsg.hidden = true;
@@ -1699,34 +1603,21 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
       if (tg && /^https:\/\/t\.me\//i.test(supportUrl) && tg.openTelegramLink) tg.openTelegramLink(supportUrl);
       else if (tg && tg.openLink) tg.openLink(supportUrl);
       else window.open(supportUrl, '_blank');
-    } catch (e) {
-      setMsg(supportMsg, 'Could not open the support link.', 'err');
-    }
+    } catch (e) { setMsg(supportMsg, 'Could not open the support link.', 'err'); }
   });
 
   var adMsg = document.getElementById('adMsg');
   var adCreate = document.getElementById('adCreate');
-
   adCreate.addEventListener('click', function(){
     var amount = document.getElementById('adAmount').value;
     if (!amount) { setMsg(adMsg, 'Please enter an amount.', 'err'); return; }
     adCreate.disabled = true;
-    api('/api/admin/gift-codes', {
-      method: 'POST',
-      body: {
-        code: document.getElementById('adCode').value,
-        amount: amount,
-        maxUses: document.getElementById('adUses').value
-      }
-    }).then(function(d){
+    api('/api/admin/gift-codes', { method: 'POST', body: {
+      code: document.getElementById('adCode').value, amount: amount, maxUses: document.getElementById('adUses').value } }).then(function(d){
       setMsg(adMsg, 'Created: ' + d.code + ' (\u20B9' + formatINR(d.amount) + ', ' + d.maxUses + ' use' + (d.maxUses === 1 ? '' : 's') + ')', 'ok');
       document.getElementById('adCode').value = '';
       document.getElementById('adAmount').value = '';
-    }).catch(function(e){
-      setMsg(adMsg, friendlyError(e), 'err');
-    }).then(function(){
-      adCreate.disabled = false;
-    });
+    }).catch(function(e){ setMsg(adMsg, friendlyError(e), 'err'); }).then(function(){ adCreate.disabled = false; });
   });
 
   // ---------- Deposit History page ----------
@@ -1738,53 +1629,38 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     document.getElementById('nCompleted').textContent = depState.counts.completed;
     document.getElementById('nFailed').textContent = depState.counts.failed;
     document.getElementById('nPending').textContent = depState.counts.pending;
-
     document.querySelectorAll('#depTabs .tab-pill').forEach(function(b){
       b.className = 'tab-pill' + (b.dataset.tab === depState.tab ? ' on-' + b.dataset.tab : '');
     });
-
     depList.textContent = '';
     var items = depState.list.filter(function(d){ return d.status === depState.tab; });
-    if (!items.length) {
-      depList.appendChild(emptyBox('No ' + TAB_LABEL[depState.tab] + ' deposits', 'Nothing to show here yet.'));
-      return;
-    }
+    if (!items.length) { depList.appendChild(emptyBox('No ' + TAB_LABEL[depState.tab] + ' deposits', 'Nothing to show here yet.')); return; }
     items.forEach(function(d){
       var row = el('div', 'row');
       var ico = el('div', 'row-ico ico-' + d.status);
       ico.appendChild(svgIcon(ICON[d.status] || ICON.pending));
       row.appendChild(ico);
-
       var main = el('div', 'row-main');
       main.appendChild(el('div', 'row-title', 'Deposit'));
       main.appendChild(el('div', 'row-date', formatDate(d.createdAt)));
       if (d.reference) main.appendChild(el('div', 'row-note', d.reference));
       row.appendChild(main);
-
       var side = el('div', 'row-side');
       side.appendChild(el('div', 'row-amt amt-' + d.status, '\u20B9' + formatINR(d.amount)));
       side.appendChild(el('span', 'chip chip-' + d.status, d.status.toUpperCase()));
       row.appendChild(side);
-
       depList.appendChild(row);
     });
   }
-
   document.querySelectorAll('#depTabs .tab-pill').forEach(function(b){
-    b.addEventListener('click', function(){
-      depState.tab = b.dataset.tab;
-      renderDeposits();
-    });
+    b.addEventListener('click', function(){ depState.tab = b.dataset.tab; renderDeposits(); });
   });
-
   function openDeposits(){
     showAcc('deposits');
     depList.textContent = '';
     depList.appendChild(emptyBox('Loading', 'Please wait...'));
     api('/api/deposits').then(function(data){
-      depState.list = data.deposits;
-      depState.counts = data.counts;
-      renderDeposits();
+      depState.list = data.deposits; depState.counts = data.counts; renderDeposits();
     }).catch(function(){
       depList.textContent = '';
       depList.appendChild(emptyBox('Could not load deposits', 'Please go back and try again.'));
@@ -1794,48 +1670,37 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
   // ---------- Transactions page ----------
   var txnList = document.getElementById('txnList');
   var TYPE_LABEL = { deposit: 'Deposit', gift_code: 'Gift Code', purchase: 'Purchase', refund: 'Refund', bonus: 'Bonus' };
-
   function renderTransactions(items){
     txnList.textContent = '';
-    if (!items.length) {
-      txnList.appendChild(emptyBox('No transactions', 'Every coin added or deducted will be listed here.'));
-      return;
-    }
+    if (!items.length) { txnList.appendChild(emptyBox('No transactions', 'Every coin added or deducted will be listed here.')); return; }
     items.forEach(function(t){
       var row = el('div', 'row');
       var ico = el('div', 'row-ico ico-' + t.direction);
       ico.appendChild(svgIcon(ICON[t.direction]));
       row.appendChild(ico);
-
       var main = el('div', 'row-main');
       main.appendChild(el('div', 'row-title', TYPE_LABEL[t.type] || t.type));
       main.appendChild(el('div', 'row-date', formatDate(t.createdAt)));
       if (t.note) main.appendChild(el('div', 'row-note', t.note));
       row.appendChild(main);
-
       var side = el('div', 'row-side');
       var sign = t.direction === 'credit' ? '+' : '-';
       side.appendChild(el('div', 'row-amt amt-' + t.direction, sign + '\u20B9' + formatINR(t.amount)));
       var st = ['completed', 'failed', 'pending'].indexOf(t.status) >= 0 ? t.status : 'completed';
       side.appendChild(el('span', 'chip chip-' + st, st.toUpperCase()));
       row.appendChild(side);
-
       txnList.appendChild(row);
     });
   }
-
   function openTransactions(){
     showAcc('txns');
     txnList.textContent = '';
     txnList.appendChild(emptyBox('Loading', 'Please wait...'));
-    api('/api/transactions').then(function(data){
-      renderTransactions(data.transactions);
-    }).catch(function(){
+    api('/api/transactions').then(function(data){ renderTransactions(data.transactions); }).catch(function(){
       txnList.textContent = '';
       txnList.appendChild(emptyBox('Could not load transactions', 'Please go back and try again.'));
     });
   }
-
   depTile.addEventListener('click', openDeposits);
   txnTile.addEventListener('click', openTransactions);
 
@@ -1858,7 +1723,7 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
         { h: 'How to create landing pages', list: [
           'Open the Landing Page tab and tap a design to preview it.',
           'The design you tap becomes your selected design. You can change it anytime.',
-          'Buying, editing and publishing are coming soon.'
+          'Tap BUY NOW to set up your landing page and tracking.'
         ] },
         { h: 'How to place an order', list: [
           'Choose a service and tap the Order button.',
@@ -1906,7 +1771,6 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
       ]
     }
   };
-
   function openInfo(key){
     var page = INFO[key];
     if (!page) return;
@@ -1914,14 +1778,9 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     var wrap = document.getElementById('infoIco');
     wrap.textContent = '';
     wrap.appendChild(svgIcon(page.icon));
-
     var body = document.getElementById('infoBody');
     body.textContent = '';
-    if (page.intro) {
-      var intro = el('div', 'info-sec');
-      intro.appendChild(el('p', '', page.intro));
-      body.appendChild(intro);
-    }
+    if (page.intro) { var intro = el('div', 'info-sec'); intro.appendChild(el('p', '', page.intro)); body.appendChild(intro); }
     page.sections.forEach(function(s){
       var sec = el('div', 'info-sec');
       if (s.h) sec.appendChild(el('h3', '', s.h));
@@ -1935,35 +1794,46 @@ nav{position:fixed;left:14px;right:14px;bottom:calc(12px + env(safe-area-inset-b
     });
     showAcc('info');
   }
-
   document.querySelectorAll('[data-info]').forEach(function(b){
     b.addEventListener('click', function(){ openInfo(b.dataset.info); });
   });
 
   // ---------- Start ----------
+  function accountOffline(){
+    document.getElementById('balNum').textContent = '--';
+    document.getElementById('depCount').textContent = '--';
+    document.getElementById('txnCount').textContent = '--';
+    STAT_IDS.forEach(function(id){ document.getElementById(id).textContent = '--'; });
+    profileFailed();
+    document.getElementById('pUser').textContent = 'Open inside Telegram';
+    balanceCard.classList.remove('skeleton-bal');
+    depTile.classList.remove('skeleton-tile');
+    txnTile.classList.remove('skeleton-tile');
+    statsBox.classList.remove('skeleton-st');
+    showError('Please open GDX STORE from inside Telegram to see your account.');
+  }
   function loadAccount(){
-    if (!hasAuth) {
-      document.getElementById('balNum').textContent = '--';
-      document.getElementById('depCount').textContent = '--';
-      document.getElementById('txnCount').textContent = '--';
-      STAT_IDS.forEach(function(id){ document.getElementById(id).textContent = '--'; });
-      balanceCard.classList.remove('skeleton-bal');
-      depTile.classList.remove('skeleton-tile');
-      txnTile.classList.remove('skeleton-tile');
-      statsBox.classList.remove('skeleton-st');
-      showError('Please open GDX STORE from inside Telegram to see your account.');
-      return;
-    }
-    loadProfile();
-    loadWallet();
-    loadStats();
-    loadConfig();
-    loadSelection();
+    accError.hidden = true;
+    accError.textContent = '';
+    if (!authed()) { accountOffline(); return; }
+    loadProfile(); loadWallet(); loadStats(); loadConfig(); loadSelection();
+  }
+  function retryAccount(){
+    profileCard.classList.add('skeleton');
+    balanceCard.classList.add('skeleton-bal');
+    depTile.classList.add('skeleton-tile');
+    txnTile.classList.add('skeleton-tile');
+    statsBox.classList.add('skeleton-st');
+    loadAccount();
   }
 
-  setGreeting('');
-  loadDesigns();
-  loadAccount();
+  // Each start-up step is isolated: one failing step can never stop the others.
+  function safely(fn){ try { fn(); } catch (e) { if (window.console) console.error(e); } }
+  safely(function(){ setGreeting(''); });
+  safely(function(){ useDesigns(null); });          // show the four designs immediately
+  safely(function(){ loadDesigns(); });             // then refresh the list from the server
+  safely(function(){ loadAccount(); });
+  safely(function(){ loadProjectsUi(function(){}); });   // adds the "MY LANDING PAGES & TRACKING" entry
 })();
 </script>
 </body>

@@ -238,7 +238,7 @@ fbq('init',${safeJson(pixel)});fbq('track','PageView');fbq('track','ViewContent'
     const clientJs = `
 (function(){
 var PID=${safeJson(project.public_id)},API=${safeJson(apiBase)},TS=${safeJson(!!tsKey)};
-var KEY='gdx_a_'+PID,KEYS=['fbclid','campaign_id','adset_id','ad_id','utm_source','utm_medium','utm_campaign','utm_content','utm_term'];
+var KEY='gdx_a_'+PID,KEYS=['fbclid','campaign_id','campaign_name','adset_id','adset_name','ad_id','ad_name','utm_source','utm_medium','utm_campaign','utm_content','utm_term'];
 function rnd(){var a=new Uint8Array(16);(window.crypto||window.msCrypto).getRandomValues(a);return Array.prototype.map.call(a,function(x){return ('0'+x.toString(16)).slice(-2)}).join('')}
 function ck(n){var m=document.cookie.match(new RegExp('(?:^|; )'+n+'=([^;]*)'));return m?decodeURIComponent(m[1]):''}
 function load(){try{return JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){return null}}

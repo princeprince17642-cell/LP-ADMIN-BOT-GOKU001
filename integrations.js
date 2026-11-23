@@ -13,7 +13,7 @@ class UserError extends Error {
     }
 }
 
-const ATTR_KEYS = ['campaign_id', 'adset_id', 'ad_id', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
+const ATTR_KEYS = ['campaign_id', 'campaign_name', 'adset_id', 'adset_name', 'ad_id', 'ad_name', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
 
 function withTimeout(ms) {
     const ctrl = new AbortController();
@@ -107,6 +107,10 @@ function setWebhook(botToken, url, secret) {
         allowed_updates: ['chat_join_request'],
         max_connections: 20
     });
+}
+
+function getWebhookInfo(botToken) {
+    return tgCall(botToken, 'getWebhookInfo', {});
 }
 
 function deleteWebhook(botToken) {
@@ -203,5 +207,5 @@ function buildSubscribeEvent(o) {
 
 module.exports = {
     UserError, ATTR_KEYS, tgCall, verifyBotAndChannel, assertBotReady, createInviteLink,
-    setWebhook, deleteWebhook, checkPixel, sendEvents, buildSubscribeEvent
+    setWebhook, deleteWebhook, getWebhookInfo, checkPixel, sendEvents, buildSubscribeEvent
 };
