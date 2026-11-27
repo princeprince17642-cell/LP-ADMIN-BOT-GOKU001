@@ -237,7 +237,7 @@ fbq('init',${safeJson(pixel)});fbq('track','PageView');fbq('track','ViewContent'
 
     const clientJs = `
 (function(){
-var PID=${safeJson(project.public_id)},API=${safeJson(apiBase)},TS=${safeJson(!!tsKey)};
+var PID=${safeJson(project.public_id)},API=${safeJson(apiBase)},TS=${safeJson(!!tsKey)},PREVIEW=${safeJson(!!o.preview)};
 var KEY='gdx_a_'+PID,KEYS=['fbclid','campaign_id','campaign_name','adset_id','adset_name','ad_id','ad_name','utm_source','utm_medium','utm_campaign','utm_content','utm_term'];
 function rnd(){var a=new Uint8Array(16);(window.crypto||window.msCrypto).getRandomValues(a);return Array.prototype.map.call(a,function(x){return ('0'+x.toString(16)).slice(-2)}).join('')}
 function ck(n){var m=document.cookie.match(new RegExp('(?:^|; )'+n+'=([^;]*)'));return m?decodeURIComponent(m[1]):''}
@@ -252,7 +252,7 @@ save();
 function fbc(){var c=ck('_fbc');if(c)return c;return A.attrs.fbclid?('fb.1.'+A.t+'.'+A.attrs.fbclid):''}
 function body(extra){var o={sid:A.sid,url:A.url,ref:A.ref,fbc:fbc(),fbp:ck('_fbp'),webdriver:!!navigator.webdriver,elapsed:Math.round(performance.now())};KEYS.forEach(function(k){o[k]=A.attrs[k]||''});for(var k in extra)o[k]=extra[k];return o}
 function post(path,data){return fetch(API+path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data),keepalive:true})}
-setTimeout(function(){post('/api/track/'+PID+'/view',body({})).catch(function(){})},900);
+if(!PREVIEW)setTimeout(function(){post('/api/track/'+PID+'/view',body({})).catch(function(){})},900);
 var toast=document.getElementById('toast'),hint=document.getElementById('hint'),btns=[].slice.call(document.querySelectorAll('[data-join]')),busy=false,tt;
 function say(m){toast.textContent=m;toast.classList.add('show');clearTimeout(tt);tt=setTimeout(function(){toast.classList.remove('show')},4500)}
 function setBusy(b){busy=b;btns.forEach(function(x){x.disabled=b;x.classList.toggle('busy',b)})}
@@ -262,6 +262,7 @@ function go(link){
  window.location.assign(link);
 }
 async function join(retried){
+ if(PREVIEW){say('Preview mode: tracking is off and no Telegram link is created.');return}
  if(busy&&!retried)return;
  setBusy(true);
  try{
@@ -295,7 +296,7 @@ else{document.querySelectorAll('.reveal').forEach(function(n){n.classList.add('i
 <meta name="robots" content="noindex">
 <style>${vars}${CSS}${THEME_CSS[key]}</style>
 <noscript><style>.reveal{opacity:1!important;transform:none!important}</style></noscript>
-${pixel ? `<script>${pixelSnippet}</script>` : ''}
+${pixel && !o.preview ? `<script>${pixelSnippet}</script>` : ''}
 ${tsKey ? '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>' : ''}
 </head>
 <body class="t-${key}">
@@ -369,4 +370,4 @@ ${tsKey ? '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" a
 </html>`;
 }
 
-module.exports = { renderProjectPage, TEMPLATE_KEYS, BG_KEYS, resolvePalette };
+module.exports = { renderProjectPage, TEMPLATE_KEYS, BG_KEYS, resolvePalette }; 

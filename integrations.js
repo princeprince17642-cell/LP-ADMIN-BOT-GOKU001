@@ -120,7 +120,7 @@ function deleteWebhook(botToken) {
 // ---------------- Meta Conversions API ----------------
 
 function graphBase() {
-    return 'https://graph.facebook.com/' + (process.env.META_API_VERSION || 'v21.0');
+    return 'https://graph.facebook.com/' + (process.env.META_API_VERSION || 'v25.0');
 }
 
 function scrub(text, token) {
@@ -129,8 +129,38 @@ function scrub(text, token) {
     return s.slice(0, 300);
 }
 
-// Read-only check: the Pixel exists and the token can access it. Does NOT send any event.
-async function checkPixel(pixelId, accessToken) {
+// Reads the Graph error object into plain fields (never includes the token).
+function parseGraphError(data, token) {
+    const e = (data && data.error) || {};
+    return {
+        code: Number(e.code) || 0,
+        subcode: Number(e.error_subcode) || 0,
+        type: String(e.type || ''),
+        message: scrub(e.message || 'unknown error', token),
+        fbtraceId: e.fbtrace_id || ''
+    };
+}
+
+const TOKEN_ERR = 'This CAPI access token is invalid or expired. Generate a new one in Events Manager > your Pixel > Settings > Conversions API > Generate access token.';
+
+// Validates a Pixel ID + CAPI token WITHOUT sending a real conversion.
+//
+// WHY the old check failed for valid credentials: it did GET /{pixel}?fields=id,name. A CAPI token generated in
+// Events Manager is allowed to POST events but is often NOT allowed to read the Pixel object, and Meta then answers
+// with code 100 ("...does not exist, cannot be loaded due to missing permissions"). The old code turned EVERY
+// code 100/200/803 into "Pixel ID not found or token has no access", so a perfectly valid pair was rejected.
+//
+// Now: 1) try to read the Pixel (proves id + access).  2) If Meta says "cannot read" (ambiguous), prove WRITE access
+// with a Test-Events-only probe when a Test Event Code is given.  3) Otherwise accept but report verified:false.
+// Definite problems (bad token, malformed id, rate limit, network, Meta errors) are still rejected with their real reason.
+async function checkPixel(pixelId, accessToken, opts) {
+    opts = opts || {};
+    pixelId = String(pixelId || '').trim();
+    if (!/^\d{8,20}$/.test(pixelId)) {
+        throw new UserError('Pixel ID must be 8 to 20 digits (copy it from Meta Events Manager).', 'pixelId');
+    }
+    if (!accessToken) throw new UserError('CAPI access token is missing.', 'capiToken');
+
     const t = withTimeout(12000);
     let res, data = null;
     try {
@@ -141,16 +171,41 @@ async function checkPixel(pixelId, accessToken) {
     } finally {
         t.done();
     }
-    if (res.ok && data && data.id) return { id: String(data.id), name: data.name || '' };
 
-    const err = (data && data.error) || {};
-    if (err.code === 190) {
-        throw new UserError('This CAPI access token is invalid or expired. Generate a new one in Events Manager.', 'capiToken');
+    if (res.ok && data && data.id) {
+        if (String(data.id) !== pixelId) throw new UserError('Meta returned a different Pixel than the one you entered.', 'pixelId');
+        return { id: String(data.id), name: data.name || '', verified: true, method: 'read', warning: '' };
     }
-    if (err.code === 100 || err.code === 803 || err.code === 200) {
-        throw new UserError('Pixel ID not found, or this token has no access to that Pixel.', 'pixelId');
+
+    const err = parseGraphError(data, accessToken);
+    if (err.code === 190) throw new UserError(TOKEN_ERR, 'capiToken');
+    if ([4, 17, 32, 613].includes(err.code)) {
+        throw new UserError('Meta is rate-limiting requests right now. Wait a minute and try again.', 'pixelId', 429);
     }
-    throw new UserError('Meta rejected the Pixel or token: ' + scrub(err.message || 'unknown error', accessToken), 'pixelId');
+    if (res.status >= 500) throw new UserError('Meta is having a problem right now. Please try again in a few minutes.', 'pixelId', 502);
+
+    // Ambiguous on purpose: Meta uses these for BOTH "does not exist" and "token cannot read it".
+    const ambiguous = [100, 200, 10, 803, 294].includes(err.code);
+    if (!ambiguous) throw new UserError('Meta rejected the Pixel or token: ' + err.message, 'pixelId');
+
+    if (opts.testEventCode) {
+        const probe = await sendEvents({
+            pixelId, accessToken, testEventCode: opts.testEventCode,
+            events: [buildSubscribeEvent({ userId: 'validate_' + Date.now(), eventId: 'validate_' + Date.now(), eventTime: Math.floor(Date.now() / 1000), attribution: {} })]
+        });
+        if (probe.ok) return { id: pixelId, name: '', verified: true, method: 'test_event', warning: '' };
+        if (probe.errorCode === 190) throw new UserError(TOKEN_ERR, 'capiToken');
+        if ([100, 200, 10, 803, 294].includes(probe.errorCode)) {
+            throw new UserError('Meta would not accept events for this Pixel ID with this token. Check that the Pixel ID is correct and that the token was generated for THIS Pixel.', 'pixelId');
+        }
+        throw new UserError('Meta did not accept the validation event: ' + (probe.error || 'unknown error'), 'pixelId');
+    }
+
+    return {
+        id: pixelId, name: '', verified: false, method: 'none',
+        warning: 'Pixel saved, but it could not be verified: this token cannot read Pixel details (normal for tokens generated in Events Manager). ' +
+                 'Add a Test Event Code and tap SEND TEST EVENT to confirm events reach this Pixel.'
+    };
 }
 
 // Sends events to Meta. Returns a plain result object; never throws.
@@ -168,15 +223,18 @@ async function sendEvents({ pixelId, accessToken, events, testEventCode }) {
         let data = null;
         try { data = await res.json(); } catch (e) { /* ignore */ }
         const received = data && typeof data.events_received === 'number' ? data.events_received : 0;
+        const ge = parseGraphError(data, accessToken);
         return {
             ok: res.ok && received >= 1,
             httpStatus: res.status,
+            errorCode: ge.code,
+            errorSubcode: ge.subcode,
             eventsReceived: received,
             fbtraceId: (data && (data.fbtrace_id || (data.error && data.error.fbtrace_id))) || '',
-            error: res.ok ? '' : scrub((data && data.error && data.error.message) || 'Meta returned an error', accessToken)
+            error: res.ok ? (received >= 1 ? '' : 'Meta accepted the request but reported 0 events received') : ge.message === 'unknown error' ? 'Meta returned an error' : ge.message
         };
     } catch (e) {
-        return { ok: false, httpStatus: 0, eventsReceived: 0, fbtraceId: '', error: 'Could not reach Meta' };
+        return { ok: false, httpStatus: 0, errorCode: 0, errorSubcode: 0, eventsReceived: 0, fbtraceId: '', error: 'Could not reach Meta' };
     } finally {
         t.done();
     }
@@ -201,6 +259,9 @@ function buildSubscribeEvent(o) {
 
     const custom = {};
     ATTR_KEYS.forEach(k => { if (o.attribution && o.attribution[k]) custom[k] = o.attribution[k]; });
+    if (o.attribution && o.attribution.fbclid) custom.fbclid = o.attribution.fbclid;
+    if (o.landingPageId) custom.landing_page_id = o.landingPageId;
+    if (o.landingPageUrl) custom.landing_page_url = o.landingPageUrl;
     if (Object.keys(custom).length) ev.custom_data = custom;
     return ev;
 }

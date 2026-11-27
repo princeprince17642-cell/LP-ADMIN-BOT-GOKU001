@@ -168,7 +168,35 @@ async function initProjectSchema(pool) {
         )
     `);
 
+    // ---- Tracking & retry upgrade (additive, safe to run many times) ----
+    // Real Telegram request time + CAPI retry bookkeeping
+    await pool.query(`ALTER TABLE join_events ADD COLUMN IF NOT EXISTS event_time BIGINT`);
+    await pool.query(`ALTER TABLE join_events ADD COLUMN IF NOT EXISTS next_retry_at TIMESTAMPTZ`);
+    // 'pending_retry' = saved in the database, Meta delivery failed temporarily and will be retried automatically
+    const cons = await pool.query(
+        `SELECT pg_get_constraintdef(oid) AS def FROM pg_constraint WHERE conrelid = 'join_events'::regclass AND conname = 'join_events_status_check'`);
+    if (!cons.rows.length || !String(cons.rows[0].def).includes('pending_retry')) {
+        await pool.query(`ALTER TABLE join_events DROP CONSTRAINT IF EXISTS join_events_status_check`);
+        await pool.query(`ALTER TABLE join_events ADD CONSTRAINT join_events_status_check CHECK (status IN ('pending', 'sent', 'failed', 'skipped', 'pending_retry'))`);
+    }
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_join_events_retry ON join_events (next_retry_at) WHERE status IN ('pending', 'pending_retry')`);
+
+    // One row per real page view / JOIN NOW click (the counters above cannot give unique visitors or campaign splits)
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS track_events (
+            id          BIGSERIAL PRIMARY KEY,
+            project_id  BIGINT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+            visitor_id  BIGINT NOT NULL REFERENCES visitors(id) ON DELETE CASCADE,
+            kind        TEXT NOT NULL CHECK (kind IN ('view', 'click')),
+            created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_track_events_project ON track_events (project_id, kind, created_at DESC)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_track_events_visitor ON track_events (project_id, visitor_id)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_visitors_project_created ON visitors (project_id, created_at DESC)`);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_join_events_visitor ON join_events (project_id, visitor_id)`);
+
     console.log('Project schema ready: projects, visitors, invite_links, join_events, capi_log, stats tables OK');
 }
 
-module.exports = { initProjectSchema };
+module.exports = { initProjectSchema };  

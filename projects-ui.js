@@ -333,6 +333,7 @@
     var req = edit ? api('/api/projects/' + p.id, { method: 'PATCH', body: o }) : api('/api/projects', { method: 'POST', body: o });
     req.then(function (d) {
       toast(edit ? 'Changes saved' : 'Your landing page is ready!', 'ok');
+      if (!edit && d.warning) setTimeout(function () { toast(d.warning, 'err'); }, 900);
       push('detail', { id: d.project.id }, true);
       if (!edit) stack = [{ screen: 'detail', args: { id: d.project.id } }];
     }).catch(function (e) {
@@ -344,6 +345,61 @@
     });
   }
 
+
+  // ---------- tracking helpers ----------
+  function shareLink(url, text) {
+    if (tg && tg.openTelegramLink) { tg.openTelegramLink('https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(text || '')); return; }
+    if (navigator.share) { navigator.share({ url: url, text: text || '' }).catch(function () {}); return; }
+    copy(url);
+  }
+  function canShare() { return !!((tg && tg.openTelegramLink) || navigator.share); }
+  function num(n) { return (n === null || n === undefined) ? 'Unavailable' : Number(n).toLocaleString('en-IN'); }
+  function rate(r) { return (r === null || r === undefined) ? '&mdash;' : r + '%'; }
+  var DIMS = [['campaign', 'Campaign'], ['adset', 'Ad set'], ['ad', 'Ad'], ['utm_source', 'UTM source'], ['utm_medium', 'UTM medium'], ['utm_campaign', 'UTM campaign'], ['utm_content', 'UTM content']];
+  var ACT = { page_view: 'Page view', join_click: 'JOIN NOW click', join_request: 'Telegram Join Request' };
+  var CAPI_TXT = { sent: 'Meta: sent', pending_retry: 'Meta: will retry', failed: 'Meta: failed', pending: 'Meta: sending' };
+
+  function breakdownTable(a, dim) {
+    var rows = (a.breakdowns[dim] || []);
+    if (!rows.length) return '<div class="gp-sub" style="margin:0">No traffic yet.</div>';
+    return '<table class="gp-tbl"><tr><th>' + esc(dim.replace('_', ' ').toUpperCase()) + '</th><th>VISITS</th><th>CLICKS</th><th>JOIN REQ.</th><th>CONV.</th></tr>' + rows.map(function (r) {
+      var label = r.unattributed ? 'Unattributed' : esc(r.name || r.key) + (r.name && r.key !== r.name ? '<br><small style="color:#7f8cab">' + esc(r.key) + '</small>' : '');
+      return '<tr><td>' + label + '</td><td>' + r.visits + '</td><td>' + r.clicks + '</td><td>' + r.joinRequests + '</td><td>' + rate(r.conversionRate) + '</td></tr>';
+    }).join('') + '</table>';
+  }
+
+  function analyticsHtml(a) {
+    var t = a.totals, d = a.today;
+    function st(label, v) { return '<div class="gp-stat"><small>' + label + '</small><b>' + v + '</b></div>'; }
+    var h = '<div class="gp-card"><div class="gp-h">LANDING PAGE ANALYTICS</div><div class="gp-sub">Real events from your own database (independent of Meta). Join Requests are counted only when Telegram confirms an actual request.</div><div class="gp-grid">' +
+      st('PAGE VIEWS', num(t.pageViews)) + st('UNIQUE VISITORS', num(t.uniqueVisitors)) +
+      st('TODAY VIEWS', num(d.pageViews)) + st('TODAY VISITORS', num(d.uniqueVisitors)) +
+      st('JOIN NOW CLICKS', num(t.joinClicks)) + st('TODAY CLICKS', num(d.joinClicks)) +
+      st('JOIN REQUESTS', num(t.joinRequests)) + st('TODAY JOIN REQ.', num(d.joinRequests)) +
+      st('CLICKS, NO JOIN REQ.', num(t.clicksWithoutJoinRequest)) + st('CONFIRMED MEMBERS', 'Unavailable') + '</div>' +
+      '<div class="gp-sub" style="margin:10px 0 0">Day boundary: ' + esc(a.timezone) + '. &quot;Clicks, no join req.&quot; = people who pressed JOIN NOW and never sent a Join Request (repeat clicks count once).</div></div>';
+
+    h += '<div class="gp-card"><div class="gp-h">RATES</div><div class="gp-grid">' +
+      st('CONVERSION RATE', rate(a.rates.conversionRate)) + st('CTR', rate(a.rates.ctr)) + st('JOIN REQUEST RATE', rate(a.rates.joinRequestRate)) + '</div>' +
+      '<div class="gp-sub" style="margin:10px 0 0">Conversion = Join Requests &divide; Unique Visitors<br>CTR = JOIN NOW clicks &divide; Page Views<br>Join Request Rate = Join Requests &divide; JOIN NOW clicks<br>&mdash; means no data yet (denominator is zero).</div></div>';
+
+    h += '<div class="gp-card"><div class="gp-h">FUNNEL</div>' + a.funnel.map(function (f, i) {
+      return '<div class="gp-code" style="margin-top:' + (i ? 6 : 0) + 'px"><b>' + esc(f.label) + ':</b> ' + (f.value === null ? 'Unavailable' : num(f.value)) + (f.note && f.value === null ? '<br><small style="color:#7f8cab">' + esc(f.note) + '</small>' : '') + '</div>';
+    }).join('') + '<div class="gp-sub" style="margin:10px 0 0">Meta (CAPI) delivery of Join Requests: sent <b>' + a.capi.sent + '</b> &middot; will retry <b>' + (a.capi.pendingRetry + a.capi.pending) + '</b> &middot; failed <b>' + a.capi.failed + '</b>' +
+      (a.otherJoinRequests ? '<br>Join requests not made through your page (never sent to Meta): <b>' + a.otherJoinRequests + '</b>' : '') + '</div></div>';
+
+    h += '<div class="gp-card"><div class="gp-h">CAMPAIGN BREAKDOWN</div><div class="gp-chips" id="d-dims" style="margin-bottom:10px">' + DIMS.map(function (x, i) {
+      return '<button type="button" class="gp-chip' + (i === 0 ? ' on' : '') + '" data-dim="' + x[0] + '">' + x[1] + '</button>';
+    }).join('') + '</div><div id="d-bd">' + breakdownTable(a, 'campaign') + '</div></div>';
+
+    h += '<div class="gp-card"><div class="gp-h">RECENT ACTIVITY</div>';
+    if (!a.recent.length) h += '<div class="gp-sub" style="margin:0">No activity yet.</div>';
+    else h += a.recent.map(function (r) {
+      return '<div class="gp-code">' + esc(ACT[r.type] || r.type) + ' &middot; ' + esc(fmtDate(r.at)) + (r.campaignName || r.campaignId ? '<br>' + esc(r.campaignName || r.campaignId) : '<br>Unattributed') + (r.capiStatus ? '<br>' + esc(CAPI_TXT[r.capiStatus] || r.capiStatus) : '') + '</div>';
+    }).join('');
+    return h + '</div>';
+  }
+
   // ---------- LIST ----------
   function renderList() {
     titleEl.textContent = 'MY LANDING PAGES';
@@ -352,16 +408,20 @@
       var h = '<button type="button" class="gp-btn gold wide" id="gp-new" style="margin:0 0 14px">+ NEW PROJECT</button>';
       if (!d.projects.length) h += '<div class="gp-empty">No projects yet.<br>Select a design in Landing Pages and tap BUY NOW.</div>';
       else h += '<div class="gp-list">' + d.projects.map(function (p) {
-        return '<button type="button" class="gp-item" data-open="' + esc(p.id) + '"><div style="flex:1;min-width:0"><b>' + esc(p.channelName) + '</b><span>' + esc(tplName(p.templateKey)) + ' &middot; ' + (p.joinRequests || 0) + ' join requests</span></div><span class="gp-chip2 ' + esc(p.status) + '">' + esc(p.status.toUpperCase()) + '</span></button>';
+        return '<div style="display:flex;flex-direction:column;gap:6px"><button type="button" class="gp-item" data-open="' + esc(p.id) + '"><div style="flex:1;min-width:0"><b>' + esc(p.channelName) + '</b><span>' + esc(tplName(p.templateKey)) + ' &middot; ' + (p.joinRequests || 0) + ' join requests</span><span>ID: ' + esc(p.id) + '</span></div><span class="gp-chip2 ' + esc(p.status) + '">' + esc(p.status.toUpperCase()) + '</span></button>' +
+          '<div class="gp-row"><button type="button" class="gp-btn sm ghost" data-lcopy="' + esc(p.id) + '" style="flex:1">COPY TRACKING LINK</button>' + (canShare() ? '<button type="button" class="gp-btn sm ghost" data-lshare="' + esc(p.id) + '" style="flex:1">SHARE</button>' : '') + '<button type="button" class="gp-btn sm ghost" data-open="' + esc(p.id) + '" style="flex:1">ANALYTICS</button></div></div>';
       }).join('') + '</div>';
       body.innerHTML = h;
       $('gp-new').addEventListener('click', function () { push('form', { templateKey: lastKey }); });
       body.querySelectorAll('[data-open]').forEach(function (b) { b.addEventListener('click', function () { push('detail', { id: b.getAttribute('data-open') }); }); });
+      function byId(id) { for (var i = 0; i < d.projects.length; i++) if (d.projects[i].id === id) return d.projects[i]; return null; }
+      body.querySelectorAll('[data-lcopy]').forEach(function (b) { b.addEventListener('click', function () { var p = byId(b.getAttribute('data-lcopy')); if (p) copy(p.trackingUrl); }); });
+      body.querySelectorAll('[data-lshare]').forEach(function (b) { b.addEventListener('click', function () { var p = byId(b.getAttribute('data-lshare')); if (p) shareLink(p.trackingUrl, p.channelName); }); });
     }).catch(function (e) { body.innerHTML = '<div class="gp-empty">' + esc(errText(e)) + '</div>'; });
   }
 
   // ---------- DETAIL ----------
-  var STAT_LABELS = [['page_views', 'Page views'], ['join_clicks', 'Join clicks'], ['link_requests', 'Link requests'], ['links_issued', 'Links issued'],
+  var STAT_LABELS = [['page_views', 'Page views'], ['join_clicks', 'Join attempts (all)'], ['link_requests', 'Link requests'], ['links_issued', 'Links issued'],
     ['join_requests', 'Join requests'], ['capi_success', 'CAPI sent'], ['capi_failed', 'CAPI failed'], ['blocked', 'Blocked clicks']];
 
   function renderDetail(id) {
@@ -374,16 +434,19 @@
 
       h += '<div class="gp-card"><div class="gp-h">BOT &amp; CHANNEL CONNECTION</div><div class="gp-sub" style="margin:0 0 8px">Bot <b>@' + esc(p.botUsername) + '</b> &middot; Channel <b>' + esc(p.channelTitle) + '</b> &middot; Webhook: <b>' + (p.webhookConnected ? 'connected' : 'not connected') + '</b></div><div id="d-conn"></div><button type="button" class="gp-btn sm ghost" id="d-check">CHECK CONNECTION</button></div>';
 
-      h += '<div class="gp-card"><div class="gp-h">YOUR LANDING PAGE</div><div class="gp-sub">Use this link as the destination URL in your Meta ad.</div><div class="gp-url"><span style="flex:1">' + esc(p.pageUrl) + '</span></div>' +
-        '<div class="gp-row" style="margin-top:10px"><button type="button" class="gp-btn sm" id="d-copy" style="flex:1">COPY LINK</button><button type="button" class="gp-btn sm green" id="d-open" style="flex:1">OPEN PAGE</button></div>' +
+      h += '<div class="gp-card"><div class="gp-h">YOUR LANDING PAGE</div><div class="gp-sub">ID: <b>' + esc(p.landingPageId) + '</b><br>Direct URL (no ad parameters):</div><div class="gp-url"><span style="flex:1">' + esc(p.directUrl) + '</span></div>' +
+        '<div class="gp-sub" style="margin-top:10px">Preview URL (tracking OFF, nothing is counted):</div><div class="gp-url"><span style="flex:1">' + esc(p.previewUrl) + '</span></div>' +
+        '<div class="gp-sub" style="margin-top:10px">Tracking URL &mdash; use this as the destination URL in your Meta ad. Meta fills the {{...}} values and adds fbclid itself.</div><div class="gp-url" id="d-track"><span style="flex:1">' + esc(p.trackingUrl) + '</span></div>' +
+        '<div class="gp-row" style="margin-top:10px"><button type="button" class="gp-btn sm" id="d-copy" style="flex:1">COPY TRACKING LINK</button>' + (canShare() ? '<button type="button" class="gp-btn sm ghost" id="d-share" style="flex:1">SHARE</button>' : '') + '<button type="button" class="gp-btn sm green" id="d-open" style="flex:1">OPEN PREVIEW</button></div>' +
         '<div class="gp-row" style="margin-top:8px"><button type="button" class="gp-btn sm ghost" id="d-dl" style="flex:1">DOWNLOAD HTML</button><button type="button" class="gp-btn sm ghost" id="d-test" style="flex:1">SEND TEST EVENT</button></div>' +
         (p.testEventCode ? '' : '<div class="gp-ok warn">Test events need a Test Event Code (Edit project). This keeps test data out of your real conversions.</div>') + '<div id="d-msg"></div></div>';
 
-      h += '<div class="gp-card"><div class="gp-h">STATS (LAST 30 DAYS)</div><div class="gp-grid">' + STAT_LABELS.map(function (l) {
+      h += '<div class="gp-card"><div class="gp-h">RAW COUNTERS (LAST 30 DAYS)</div><div class="gp-grid">' + STAT_LABELS.map(function (l) {
         return '<div class="gp-stat"><small>' + l[1].toUpperCase() + '</small><b>' + (t[l[0]] || 0) + '</b></div>';
       }).join('') + '</div><div class="gp-sub" style="margin:10px 0 0">Other join requests (not through your page, never sent to Meta): <b>' + (t.unattributed_join_requests || 0) + '</b>' +
         (s.blocked.length ? '<br>Blocked: ' + s.blocked.map(function (b) { return esc(b.reason) + ' (' + b.count + ')'; }).join(', ') : '') + '</div></div>';
 
+      if (d.analytics) h += analyticsHtml(d.analytics);
       h += '<div class="gp-card"><div class="gp-h">WHICH AD BROUGHT THE JOINS</div>';
       if (!s.attribution.length) h += '<div class="gp-sub" style="margin:0">No join requests yet.</div>';
       else h += '<table class="gp-tbl"><tr><th>CAMPAIGN</th><th>AD SET</th><th>AD</th><th>JOINS</th></tr>' + s.attribution.map(function (a) {
@@ -405,8 +468,16 @@
       body.innerHTML = h;
 
       $('d-check').addEventListener('click', function () { checkConn(p); });
-      $('d-copy').addEventListener('click', function () { copy(p.pageUrl); });
-      $('d-open').addEventListener('click', function () { openLink(p.pageUrl); });
+      $('d-copy').addEventListener('click', function () { copy(p.trackingUrl); });
+      if ($('d-share')) $('d-share').addEventListener('click', function () { shareLink(p.trackingUrl, p.channelName); });
+      $('d-open').addEventListener('click', function () { openLink(p.previewUrl); });
+      var dimBox = $('d-dims');
+      if (dimBox) dimBox.querySelectorAll('[data-dim]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          dimBox.querySelectorAll('[data-dim]').forEach(function (x) { x.classList.remove('on'); });
+          b.classList.add('on'); $('d-bd').innerHTML = breakdownTable(d.analytics, b.getAttribute('data-dim'));
+        });
+      });
       $('d-copyp').addEventListener('click', function () { copy(d.adParams); });
       $('d-edit').addEventListener('click', function () { push('form', { project: p }); });
       $('d-dl').addEventListener('click', function () { download(p); });
@@ -490,4 +561,4 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', injectEntry); else injectEntry();
 
   window.GDXProjects = { open: open, openList: openList };
-})();
+})() 

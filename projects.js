@@ -24,6 +24,12 @@ const MIN_VISIT_AGE_MS = 1000;     // a real person needs at least ~1s on the pa
 const LIMIT_LINKS_PER_IP = 20;     // invite links per IP per 10 minutes
 const LIMIT_VISITS_PER_IP = 150;   // page views per IP per 10 minutes
 const RATE_WINDOW_MIN = 10;
+// Meta CAPI retry policy: the Join Request is already saved; delivery is retried with growing delays.
+const RETRY_DELAYS_MIN = [1, 5, 15, 60, 360, 720, 1440];   // wait before attempt #2, #3, ...
+const MAX_CAPI_ATTEMPTS = 8;
+const MAX_EVENT_AGE_SEC = 6 * 24 * 3600;                   // Meta rejects events older than 7 days
+const RETRY_POLL_MS = 60 * 1000;
+const ANALYTICS_TZ = /^[A-Za-z0-9_\/+-]{1,40}$/.test(process.env.ANALYTICS_TIMEZONE || '') ? process.env.ANALYTICS_TIMEZONE : 'UTC';
 
 const RE = {
     publicId: /^[a-f0-9]{16}$/,
@@ -95,6 +101,36 @@ function snapshotAttribution(v) {
     const s = { fbclid: v.fbclid || '', fbc: v.fbc || '', fbp: v.fbp || '', source_url: v.source_url || '' };
     ATTR_KEYS.forEach(k => { s[k] = v[k] || ''; });
     return s;
+}
+
+// ---------------- Tracking URL ----------------
+// Default ad parameters. Values like {{campaign.id}} are Meta dynamic macros: Meta replaces them per ad,
+// so they must stay un-encoded. fbclid is appended by Meta automatically (only included if explicitly supplied).
+const TRACK_DEFAULTS = [
+    ['campaign_id', '{{campaign.id}}'], ['campaign_name', '{{campaign.name}}'],
+    ['adset_id', '{{adset.id}}'], ['adset_name', '{{adset.name}}'],
+    ['ad_id', '{{ad.id}}'], ['ad_name', '{{ad.name}}'],
+    ['utm_source', 'facebook'], ['utm_medium', 'paid'], ['utm_campaign', '{{campaign.name}}'],
+    ['utm_content', '{{ad.name}}'], ['utm_term', '{{adset.name}}']
+];
+const MACRO = /^\{\{[a-z_.]{3,30}\}\}$/;
+const PARAM_KEY = /^[A-Za-z0-9_.-]{1,40}$/;
+
+// Builds "<page url>?landing_page_id=..&campaign_id=..". No duplicate keys, existing/custom params are kept,
+// caller values (extra) override the defaults.
+function buildTrackingUrl(baseUrl, landingPageId, extra) {
+    const u = new URL(baseUrl);
+    const params = new Map();
+    u.searchParams.forEach((v, k) => { if (!params.has(k)) params.set(k, v); });
+    params.set('landing_page_id', landingPageId);
+    TRACK_DEFAULTS.forEach(([k, v]) => { if (!params.has(k)) params.set(k, v); });
+    Object.keys(extra || {}).forEach(k => {
+        if (!PARAM_KEY.test(k) || k === 'landing_page_id') return;
+        const v = clean(Array.isArray(extra[k]) ? extra[k][0] : extra[k], 200);
+        if (v) params.set(k, v);
+    });
+    const qs = [...params.entries()].map(([k, v]) => encodeURIComponent(k) + '=' + (MACRO.test(v) ? v : encodeURIComponent(v))).join('&');
+    return u.origin + u.pathname + '?' + qs;
 }
 
 // ---------------- Input validation ----------------
@@ -199,8 +235,63 @@ function validateProjectInput(body, partial, findTemplate) {
 // ---------------- Postgres data layer ----------------
 // All SQL lives here, so the route logic above/below can be tested without a database.
 
+const BREAKDOWN_DIMS = {
+    campaign: ['campaign_id', 'campaign_name'], adset: ['adset_id', 'adset_name'], ad: ['ad_id', 'ad_name'],
+    utm_source: ['utm_source'], utm_medium: ['utm_medium'], utm_campaign: ['utm_campaign'], utm_content: ['utm_content']
+};
+// Safe percentage: null (shown as "-") when the denominator is zero. Never an estimate.
+function pct(num, den) { return den > 0 ? Math.round((num / den) * 10000) / 100 : null; }
+
 const STAT_FIELDS = ['page_views', 'join_clicks', 'link_requests', 'links_issued', 'join_requests',
     'capi_success', 'capi_failed', 'blocked', 'unattributed_join_requests'];
+
+// Pure function: turns the raw SQL rows into the analytics object. All formulas live here (unit-tested).
+function shapeAnalytics(raw) {
+    const n = (x) => Number(x || 0);
+    const { tz, ev, jr, drop, other, breakdownRows, recent } = raw;
+    const breakdowns = {};
+    Object.keys(breakdownRows).forEach(key => {
+        const { a, b } = breakdownRows[key];
+        const map = new Map();
+        const row = (k) => { if (!map.has(k)) map.set(k, { key: k, name: '', visits: 0, clicks: 0, visitors: 0, joinRequests: 0 }); return map.get(k); };
+        a.forEach(r => { const o = row(r.k); o.name = o.name || r.name; o.visits = n(r.visits); o.clicks = n(r.clicks); o.visitors = n(r.visitors); });
+        b.forEach(r => { const o = row(r.k); o.name = o.name || r.name; o.joinRequests = n(r.joins); });
+        breakdowns[key] = [...map.values()]
+            .map(o => Object.assign(o, { unattributed: o.key === '', conversionRate: pct(o.joinRequests, o.visitors) }))
+            .sort((x, y) => (y.joinRequests - x.joinRequests) || (y.visits - x.visits)).slice(0, 50);
+    });
+    const totals = { pageViews: n(ev.page_views), uniqueVisitors: n(ev.unique_visitors), joinClicks: n(ev.join_clicks),
+        joinRequests: n(jr.join_requests), clicksWithoutJoinRequest: n(drop.total) };
+    const today = { pageViews: n(ev.today_page_views), uniqueVisitors: n(ev.today_unique_visitors), joinClicks: n(ev.today_join_clicks),
+        joinRequests: n(jr.today_join_requests), clicksWithoutJoinRequest: n(drop.today) };
+    return {
+        timezone: tz, since: 'Counted from the day tracking events were enabled; older traffic only exists in the 30-day counters.',
+        totals, today,
+        confirmedMembers: null,      // Not independently verifiable: the webhook only receives join REQUESTS, not approvals.
+        otherJoinRequests: n(other.n),
+        rates: {
+            conversionRate: pct(totals.joinRequests, totals.uniqueVisitors),
+            ctr: pct(totals.joinClicks, totals.pageViews),
+            joinRequestRate: pct(totals.joinRequests, totals.joinClicks)
+        },
+        rateDefinitions: {
+            conversionRate: 'Actual Telegram Join Requests / Unique Visitors x 100',
+            ctr: 'JOIN NOW clicks / Page Views x 100',
+            joinRequestRate: 'Actual Telegram Join Requests / JOIN NOW clicks x 100',
+            clicksWithoutJoinRequest: 'Unique visitors who pressed JOIN NOW and have no Join Request (repeat clicks count once)'
+        },
+        funnel: [
+            { key: 'visits', label: 'Landing Page Visits', value: totals.pageViews },
+            { key: 'clicks', label: 'JOIN NOW Clicks', value: totals.joinClicks },
+            { key: 'telegram_opened', label: 'Telegram Opened', value: null, note: 'Not measurable: the browser cannot tell whether Telegram opened.' },
+            { key: 'join_requests', label: 'Actual Telegram Join Requests', value: totals.joinRequests },
+            { key: 'confirmed', label: 'Confirmed Channel Members', value: null, note: 'Unavailable: not independently verifiable with join-request webhooks.' }
+        ],
+        capi: { sent: n(jr.capi_sent), failed: n(jr.capi_failed), pendingRetry: n(jr.capi_pending_retry), pending: n(jr.capi_pending) },
+        breakdowns,
+        recent: recent.map(r => ({ type: r.type, at: r.occurred_at, campaignName: r.campaign_name || '', campaignId: r.campaign_id || '', utmSource: r.utm_source || '', capiStatus: r.capi_status || undefined }))
+    };
+}
 
 function createPgStore(getPool) {
     const q = (text, params) => getPool().query(text, params);
@@ -215,6 +306,10 @@ function createPgStore(getPool) {
         },
         getOwned: (publicId, ownerId) => one(`SELECT * FROM projects WHERE public_id = $1 AND owner_telegram_id = $2`, [publicId, ownerId]),
         getByPublicId: (publicId) => one(`SELECT * FROM projects WHERE public_id = $1`, [publicId]),
+        getById: (id) => one(`SELECT * FROM projects WHERE id = $1`, [id]),
+        async recordEvent(projectId, visitorId, kind) {
+            await q(`INSERT INTO track_events (project_id, visitor_id, kind) VALUES ($1, $2, $3)`, [projectId, visitorId, kind]);
+        },
         async countOwned(ownerId) {
             const r = await one(`SELECT COUNT(*) AS c FROM projects WHERE owner_telegram_id = $1`, [ownerId]);
             return Number(r.c);
@@ -316,19 +411,94 @@ function createPgStore(getPool) {
 
         // Returns the new row, or null when this user already has a join event in this channel (dedupe).
         insertJoinEvent: (j) => one(
-            `INSERT INTO join_events (project_id, telegram_user_id, chat_id, invite_link_id, visitor_id, event_id, attribution, source_url, visitor_session)
-             VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8,$9)
-             ON CONFLICT (project_id, chat_id, telegram_user_id) DO NOTHING RETURNING id`,
-            [j.projectId, j.telegramUserId, j.chatId, j.inviteLinkId, j.visitorId, j.eventId, JSON.stringify(j.attribution), j.sourceUrl, j.visitorSession]),
+            `INSERT INTO join_events (project_id, telegram_user_id, chat_id, invite_link_id, visitor_id, event_id, attribution, source_url, visitor_session, event_time, next_retry_at)
+             VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8,$9,$10, NOW() + INTERVAL '3 minutes')
+             ON CONFLICT (project_id, chat_id, telegram_user_id) DO NOTHING RETURNING *`,
+            [j.projectId, j.telegramUserId, j.chatId, j.inviteLinkId, j.visitorId, j.eventId, JSON.stringify(j.attribution), j.sourceUrl, j.visitorSession, j.eventTime]),
+        // r.state: 'sent' | 'pending_retry' | 'failed'. attempts accumulate across retries.
         async finishJoinEvent(id, r) {
-            await q(`UPDATE join_events SET status = $2, attempts = $3, capi_http_status = $4, capi_events_received = $5,
-                        capi_fbtrace_id = $6, capi_error = $7, sent_at = CASE WHEN $2 = 'sent' THEN NOW() ELSE NULL END WHERE id = $1`,
-                [id, r.ok ? 'sent' : 'failed', r.attempts, r.httpStatus, r.eventsReceived, r.fbtraceId, r.error]);
+            await q(`UPDATE join_events SET status = $2, attempts = attempts + $3, capi_http_status = $4, capi_events_received = $5,
+                        capi_fbtrace_id = $6, capi_error = $7, sent_at = CASE WHEN $2 = 'sent' THEN NOW() ELSE NULL END,
+                        next_retry_at = $8 WHERE id = $1`,
+                [id, r.state, r.attempts, r.httpStatus, r.eventsReceived, r.fbtraceId, r.error, r.nextRetryAt || null]);
+        },
+        // Atomically leases rows that still need a Meta delivery (other workers skip them for 5 minutes).
+        async claimRetryJoins(limit) {
+            const r = await q(
+                `UPDATE join_events SET next_retry_at = NOW() + INTERVAL '5 minutes'
+                 WHERE id IN (SELECT id FROM join_events
+                              WHERE (status = 'pending_retry' AND next_retry_at <= NOW())
+                                 OR (status = 'pending' AND COALESCE(next_retry_at, created_at + INTERVAL '3 minutes') <= NOW())
+                              ORDER BY id LIMIT $1 FOR UPDATE SKIP LOCKED)
+                 RETURNING *`, [limit]);
+            return r.rows;
         },
         async logCapi(l) {
             await q(`INSERT INTO capi_log (project_id, kind, event_id, ok, http_status, events_received, fbtrace_id, error_message)
                      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
                 [l.projectId, l.kind, l.eventId || '', l.ok, l.httpStatus, l.eventsReceived, l.fbtraceId || '', l.error || '']);
+        },
+
+        // Per-landing-page analytics. EVERY query is filtered by project_id (callers resolve it through owner checks).
+        async getAnalytics(projectId, tz) {
+            const D = `(date_trunc('day', NOW() AT TIME ZONE $2::text) AT TIME ZONE $2::text)`;
+            const ev = await one(
+                `SELECT COUNT(*) FILTER (WHERE kind = 'view') AS page_views,
+                        COUNT(DISTINCT visitor_id) AS unique_visitors,
+                        COUNT(*) FILTER (WHERE kind = 'click') AS join_clicks,
+                        COUNT(*) FILTER (WHERE kind = 'view' AND created_at >= ${D}) AS today_page_views,
+                        COUNT(DISTINCT visitor_id) FILTER (WHERE created_at >= ${D}) AS today_unique_visitors,
+                        COUNT(*) FILTER (WHERE kind = 'click' AND created_at >= ${D}) AS today_join_clicks
+                 FROM track_events WHERE project_id = $1`, [projectId, tz]);
+            const jr = await one(
+                `SELECT COUNT(*) AS join_requests,
+                        COUNT(*) FILTER (WHERE created_at >= ${D}) AS today_join_requests,
+                        COUNT(*) FILTER (WHERE status = 'sent') AS capi_sent,
+                        COUNT(*) FILTER (WHERE status = 'failed') AS capi_failed,
+                        COUNT(*) FILTER (WHERE status = 'pending_retry') AS capi_pending_retry,
+                        COUNT(*) FILTER (WHERE status = 'pending') AS capi_pending
+                 FROM join_events WHERE project_id = $1`, [projectId, tz]);
+            // Visitors who pressed JOIN NOW but never sent a Join Request (a visitor with 3 clicks counts once)
+            const drop = await one(
+                `SELECT COUNT(DISTINCT e.visitor_id) AS total,
+                        COUNT(DISTINCT e.visitor_id) FILTER (WHERE e.created_at >= ${D}) AS today
+                 FROM track_events e
+                 WHERE e.project_id = $1 AND e.kind = 'click'
+                   AND NOT EXISTS (SELECT 1 FROM join_events j WHERE j.project_id = $1 AND j.visitor_id = e.visitor_id)`, [projectId, tz]);
+            const other = await one(`SELECT COALESCE(SUM(unattributed_join_requests),0) AS n FROM project_stats_daily WHERE project_id = $1`, [projectId]);
+
+            const breakdownRows = {};
+            for (const key of Object.keys(BREAKDOWN_DIMS)) {
+                const [idc, namec] = BREAKDOWN_DIMS[key];     // column names come from a fixed whitelist, never from the request
+                const kExpr = namec ? `COALESCE(NULLIF(v.${idc},''), NULLIF(v.${namec},''), '')` : `COALESCE(NULLIF(v.${idc},''), '')`;
+                const nExpr = namec ? `COALESCE(MAX(NULLIF(v.${namec},'')), '')` : `''`;
+                const a = (await q(
+                    `SELECT ${kExpr} AS k, ${nExpr} AS name,
+                            COUNT(*) FILTER (WHERE e.kind = 'view') AS visits,
+                            COUNT(*) FILTER (WHERE e.kind = 'click') AS clicks,
+                            COUNT(DISTINCT e.visitor_id) AS visitors
+                     FROM track_events e JOIN visitors v ON v.id = e.visitor_id
+                     WHERE e.project_id = $1 GROUP BY 1`, [projectId])).rows;
+                const jKey = namec
+                    ? `COALESCE(NULLIF(j.attribution->>'${idc}',''), NULLIF(j.attribution->>'${namec}',''), '')`
+                    : `COALESCE(NULLIF(j.attribution->>'${idc}',''), '')`;
+                const jn = namec ? `COALESCE(MAX(NULLIF(j.attribution->>'${namec}','')), '')` : `''`;
+                const b = (await q(
+                    `SELECT ${jKey} AS k, ${jn} AS name, COUNT(*) AS joins FROM join_events j WHERE j.project_id = $1 GROUP BY 1`, [projectId])).rows;
+                breakdownRows[key] = { a, b };
+            }
+
+            const recent = (await q(
+                `(SELECT CASE e.kind WHEN 'view' THEN 'page_view' ELSE 'join_click' END AS type, e.created_at AS occurred_at,
+                         v.campaign_name, v.campaign_id, v.utm_source, NULL::text AS capi_status
+                  FROM track_events e JOIN visitors v ON v.id = e.visitor_id WHERE e.project_id = $1 ORDER BY e.created_at DESC LIMIT 20)
+                 UNION ALL
+                 (SELECT 'join_request', j.created_at, COALESCE(j.attribution->>'campaign_name',''), COALESCE(j.attribution->>'campaign_id',''),
+                         COALESCE(j.attribution->>'utm_source',''), j.status
+                  FROM join_events j WHERE j.project_id = $1 ORDER BY j.created_at DESC LIMIT 20)
+                 ORDER BY occurred_at DESC LIMIT 25`, [projectId])).rows;
+
+            return shapeAnalytics({ tz, ev, jr, drop, other, breakdownRows, recent });
         },
 
         async getStats(projectId, days) {
@@ -428,6 +598,10 @@ function mount(app, ctx) {
             requireFbclid: !!p.require_fbclid,
             turnstileEnabled: !!p.turnstile_enabled,
             pageUrl: pageUrl(p),
+            landingPageId: p.public_id,
+            directUrl: pageUrl(p),
+            previewUrl: pageUrl(p) + '?preview=1',      // opens the page with ALL tracking switched off
+            trackingUrl: buildTrackingUrl(pageUrl(p), p.public_id),
             joinRequests: p.total_joins !== undefined ? Number(p.total_joins) : undefined,
             webhookConnected: !!p.webhook_set_at,
             createdAt: p.created_at,
@@ -465,7 +639,7 @@ function mount(app, ctx) {
         }
         res.set('Cache-Control', 'no-cache');
         res.set('X-Content-Type-Options', 'nosniff');
-        res.type('html').send(renderProjectPage(p, { apiBase: '', turnstileSiteKey: turnstileReady ? turnstile.siteKey : '' }));
+        res.type('html').send(renderProjectPage(p, { apiBase: '', turnstileSiteKey: turnstileReady ? turnstile.siteKey : '', preview: req.query.preview === '1' }));
     }));
 
     // ----- tracking: page view (saves the FIRST-touch attribution) -----
@@ -479,7 +653,8 @@ function mount(app, ctx) {
         if (!RE.sid.test(a.sid)) return res.status(400).json({ ok: false, error: 'Bad session.' });
         const ip = clientIp(req);
         if (await store.countVisitorsByIp(project.id, ip, RATE_WINDOW_MIN) >= LIMIT_VISITS_PER_IP) return res.status(204).end();
-        await store.upsertVisitor(project.id, Object.assign({}, a, { ip, ua }));
+        const vis = await store.upsertVisitor(project.id, Object.assign({}, a, { ip, ua }));
+        await store.recordEvent(project.id, vis.id, 'view');
         await store.bump(project.id, 'page_views');
         res.json({ ok: true });
     }));
@@ -538,6 +713,7 @@ function mount(app, ctx) {
             return deny('too_fast', 429, 'One moment please...');
         }
 
+        await store.recordEvent(project.id, v.id, 'click');      // a real JOIN NOW click (bots / blocked attempts never get here)
         await store.bump(project.id, 'link_requests');
 
         // One invite link per visitor session
@@ -562,6 +738,7 @@ function mount(app, ctx) {
     }));
 
     // ----- Telegram webhook (one per bot / project) -----
+    // ----- Meta delivery of a saved Join Request (inline first try + background retries) -----
     async function sendWithRetry(project, event) {
         const token = secure.decrypt(project.capi_token_enc);
         let last = null;
@@ -570,10 +747,67 @@ function mount(app, ctx) {
             last = await integ.sendEvents({ pixelId: project.pixel_id, accessToken: token, events: [event], testEventCode: '' });
             last.attempts = i + 1;
             if (last.ok) break;
-            const transient = last.httpStatus === 0 || last.httpStatus >= 500 || last.httpStatus === 429;
-            if (!transient) break;
+            if (!isTransient(last)) break;
         }
         return last;
+    }
+    // Temporary problems are retried later; a rejected token / pixel / payload is not (retrying cannot fix it).
+    function isTransient(r) { return r.httpStatus === 0 || r.httpStatus >= 500 || r.httpStatus === 429 || [1, 2, 4, 17, 32, 341, 613].includes(r.errorCode); }
+
+    function eventFromJoin(project, j, visitor) {
+        const at = j.attribution || {};
+        return integ.buildSubscribeEvent({
+            userId: j.telegram_user_id, eventId: j.event_id,
+            eventTime: Number(j.event_time) || Math.floor(new Date(j.created_at).getTime() / 1000),
+            fbc: at.fbc || (visitor && visitor.fbc), fbp: at.fbp || (visitor && visitor.fbp),
+            ip: visitor && visitor.ip, userAgent: visitor && visitor.user_agent,
+            sourceUrl: j.source_url || at.source_url || '', attribution: at,
+            landingPageId: project.public_id, landingPageUrl: pageUrl(project)
+        });
+    }
+
+    // The Join Request is ALREADY in PostgreSQL when this runs. Whatever happens here never removes it.
+    async function deliverJoin(project, j, visitor) {
+        const result = await sendWithRetry(project, eventFromJoin(project, j, visitor));
+        const totalAttempts = Number(j.attempts || 0) + result.attempts;
+        const ageSec = Math.floor(Date.now() / 1000) - (Number(j.event_time) || Math.floor(new Date(j.created_at).getTime() / 1000));
+        let state = 'sent', nextRetryAt = null;
+        if (!result.ok) {
+            const canRetry = isTransient(result) && totalAttempts < MAX_CAPI_ATTEMPTS && ageSec < MAX_EVENT_AGE_SEC;
+            state = canRetry ? 'pending_retry' : 'failed';
+            if (canRetry) nextRetryAt = new Date(Date.now() + RETRY_DELAYS_MIN[Math.min(totalAttempts - 1, RETRY_DELAYS_MIN.length - 1)] * 60000);
+        }
+        await store.finishJoinEvent(j.id, Object.assign({}, result, { state, nextRetryAt }));
+        await store.logCapi({ projectId: project.id, kind: 'join', eventId: j.event_id, ok: result.ok, httpStatus: result.httpStatus,
+            eventsReceived: result.eventsReceived, fbtraceId: result.fbtraceId, error: result.error });
+        // counters: success once; "failed" only when it is final
+        if (result.ok) await store.bump(project.id, 'capi_success');
+        else if (state === 'failed') await store.bump(project.id, 'capi_failed');
+        logJson('capi', { project: project.public_id, kind: 'join', ok: result.ok, state, http: result.httpStatus,
+            received: result.eventsReceived, fbtrace: result.fbtraceId, attempts: totalAttempts, error: result.error || undefined });
+        return state;
+    }
+
+    // Background worker: re-sends Join Requests whose Meta delivery is still open. Same event_id => Meta de-duplicates.
+    let retrying = false;
+    async function retryPending() {
+        if (retrying || !ctx.isDbReady()) return 0;
+        retrying = true;
+        let done = 0;
+        try {
+            const rows = await store.claimRetryJoins(20);
+            for (const j of rows) {
+                try {
+                    const project = await store.getById(j.project_id);
+                    if (!project) continue;
+                    const visitor = j.visitor_id ? await store.getVisitorById(j.visitor_id) : null;
+                    await deliverJoin(project, j, visitor);
+                    done++;
+                } catch (e) { logJson('retry_error', { id: String(j.id), message: scrubError(e) }); }
+            }
+        } catch (e) { logJson('retry_error', { message: scrubError(e) }); }
+        finally { retrying = false; }
+        return done;
     }
 
     async function handleJoinRequest(project, jr) {
@@ -597,29 +831,18 @@ function mount(app, ctx) {
         const chatId = String(jr.chat.id);
         const eventId = `join_${chatId}_${userId}`;
 
+        // 1) SAVE FIRST (the database is the source of truth)
         const row = await store.insertJoinEvent({
             projectId: project.id, telegramUserId: userId, chatId, inviteLinkId: link.id,
             visitorId: visitor ? visitor.id : null, eventId, attribution,
-            sourceUrl: visitor ? (visitor.source_url || '') : '', visitorSession: visitor ? visitor.session_id : ''
+            sourceUrl: visitor ? (visitor.source_url || '') : '', visitorSession: visitor ? visitor.session_id : '',
+            eventTime: Number(jr.date) || Math.floor(Date.now() / 1000)
         });
-        if (!row) { logJson('join_duplicate', { project: project.public_id }); return; }   // one Subscribe per user per channel
-
+        if (!row) { logJson('join_duplicate', { project: project.public_id }); return; }   // duplicate webhook / retry: one Subscribe per user per channel
         await store.bump(project.id, 'join_requests');
 
-        const event = integ.buildSubscribeEvent({
-            userId, eventId,
-            eventTime: Number(jr.date) || Math.floor(Date.now() / 1000),
-            fbc: visitor && visitor.fbc, fbp: visitor && visitor.fbp,
-            ip: visitor && visitor.ip, userAgent: visitor && visitor.user_agent,
-            sourceUrl: visitor && visitor.source_url, attribution
-        });
-        const result = await sendWithRetry(project, event);
-        await store.finishJoinEvent(row.id, result);
-        await store.logCapi({ projectId: project.id, kind: 'join', eventId, ok: result.ok, httpStatus: result.httpStatus,
-            eventsReceived: result.eventsReceived, fbtraceId: result.fbtraceId, error: result.error });
-        await store.bump(project.id, result.ok ? 'capi_success' : 'capi_failed');
-        logJson('capi', { project: project.public_id, kind: 'join', ok: result.ok, http: result.httpStatus,
-            received: result.eventsReceived, fbtrace: result.fbtraceId, attempts: result.attempts, error: result.error || undefined });
+        // 2) ONLY NOW tell Meta. A failure here leaves the row as pending_retry / failed, never deletes it.
+        await deliverJoin(project, row, visitor);
     }
 
     app.post('/api/tg/:publicId', async (req, res) => {
@@ -676,7 +899,7 @@ function mount(app, ctx) {
         const check = await integ.verifyBotAndChannel(v.botToken, v.channelId);
         integ.assertBotReady(check);
         if (check.bot.id !== botIdFromToken) bad('botToken', 'This bot token is not valid.');
-        await integ.checkPixel(v.pixelId, v.capiToken);
+        const pixel = await integ.checkPixel(v.pixelId, v.capiToken, { testEventCode: v.testEventCode });
 
         const publicId = secure.randomToken(8);
         const webhookSecret = secure.randomToken(24);
@@ -703,7 +926,7 @@ function mount(app, ctx) {
             throw new UserError('Could not connect your bot to this page: ' + scrubError(e), 'botToken', 502);
         }
         logJson('project_created', { project: publicId, owner: String(ownerId), template: v.templateKey });
-        res.json({ ok: true, project: serialize(row) });
+        res.json({ ok: true, project: serialize(row), pixelVerified: pixel.verified, warning: pixel.warning || undefined });
     }));
 
     app.get('/api/projects', auth, handle(async (req, res) => {
@@ -716,10 +939,25 @@ function mount(app, ctx) {
         needReady();
         const p = await owned(req);
         const stats = await store.getStats(p.id, 30);
+        const analytics = await store.getAnalytics(p.id, ANALYTICS_TZ);
         res.json({
-            ok: true, project: serialize(p), stats,
-            adParams: 'campaign_id={{campaign.id}}&campaign_name={{campaign.name}}&adset_id={{adset.id}}&adset_name={{adset.name}}&ad_id={{ad.id}}&ad_name={{ad.name}}&utm_source=facebook&utm_medium=paid&utm_campaign={{campaign.name}}&utm_content={{ad.name}}&utm_term={{adset.name}}'
+            ok: true, project: serialize(p), stats, analytics,
+            adParams: 'landing_page_id=' + p.public_id + '&campaign_id={{campaign.id}}&campaign_name={{campaign.name}}&adset_id={{adset.id}}&adset_name={{adset.name}}&ad_id={{ad.id}}&ad_name={{ad.name}}&utm_source=facebook&utm_medium=paid&utm_campaign={{campaign.name}}&utm_content={{ad.name}}&utm_term={{adset.name}}'
         });
+    }));
+
+    // Isolated analytics of ONE landing page. owned() = the caller must own it (404 otherwise); every query uses that project's id.
+    app.get('/api/projects/:id/analytics', auth, handle(async (req, res) => {
+        needReady();
+        const p = await owned(req);
+        res.json({ ok: true, landingPageId: p.public_id, analytics: await store.getAnalytics(p.id, ANALYTICS_TZ) });
+    }));
+
+    // Tracking URL; optional custom parameters can be passed as a query string (duplicates are merged, not repeated).
+    app.get('/api/projects/:id/tracking-url', auth, handle(async (req, res) => {
+        needReady();
+        const p = await owned(req);
+        res.json({ ok: true, landingPageId: p.public_id, trackingUrl: buildTrackingUrl(pageUrl(p), p.public_id, req.query) });
     }));
 
     app.patch('/api/projects/:id', auth, handle(async (req, res) => {
@@ -787,6 +1025,7 @@ function mount(app, ctx) {
 
     return {
         whenIdle: () => Promise.allSettled([...pending]),
+        retryPending,
         pendingCount: () => pending.size
     };
 }
@@ -835,6 +1074,9 @@ function setup(app, deps) {
                 const pool = deps.getPool();
                 if (!pool) return;
                 await initProjectSchema(pool);
+                const timer = setInterval(() => { api.retryPending().catch(() => {}); }, RETRY_POLL_MS);
+                timer.unref();
+                setTimeout(() => api.retryPending().catch(() => {}), 15000).unref();   // pick up anything left over from a restart
                 if (!secure.isEncryptionReady()) {
                     console.error('WARNING: TOKEN_ENCRYPTION_KEY is missing or invalid. Projects cannot be created until it is set in Railway > Variables.');
                 }
@@ -846,4 +1088,4 @@ function setup(app, deps) {
     };
 }
 
-module.exports = { setup, mount, normalizeAttribution, isBotUa, validateProjectInput, clientIp, createPgStore };
+module.exports = { shapeAnalytics, setup, mount, normalizeAttribution, isBotUa, validateProjectInput, clientIp, createPgStore, buildTrackingUrl, pct };
