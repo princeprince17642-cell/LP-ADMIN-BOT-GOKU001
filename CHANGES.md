@@ -1,90 +1,60 @@
-# LP-ADMIN-BOT-GOKU001 — tracking & analytics update
+# v3 corrections — persistence, minimal page, open access, Your Services, Orders, history
+(v2 notes: CHANGES_v2.md. Originals of the first upload: `_original_backup/`.)
 
-## READ FIRST: what was and wasn't in the upload
-The upload was ONE text file (`my_github_all_files`) containing 8 files, not a ZIP. I split it into the real files.
-**Not in the upload (so not inspected, not changed, not included):** `secure.js`, `index.html`, `landing.html`, `project-theme.js`,
-`integrations.js` was present, `logo.png`. Copy the files from this folder **over** your repo; keep your own `secure.js`, `index.html`, etc.
+**Still missing from your uploads:** `secure.js`, `index.html`, `landing.html`, `project-theme.js`, `logo.png`. Copy this folder's files over your repo; keep your own copies of those.
+Files changed in v3: `projects.js`, `projects-ui.js`, `landing-page.js`, `project-schema.js` (+ v2: `integrations.js`). `server.js` is unchanged.
 
-Changed: `integrations.js`, `project-schema.js`, `projects.js`, `projects-ui.js`, `landing-page.js`, `package.json` (added `"test"` script only).
-Unchanged: `server.js`, `landing-templates.js`. Originals are in `_original_backup/`. New: `tests/`.
+## 1. Why the landing page "disappeared"
+I could not see `index.html` or your database, so this is from the code. Findings:
+- **Nothing deleted it.** Pages live in the PostgreSQL `projects` table. The only deletion paths are your own DELETE, and a rollback *during creation* if Telegram's setWebhook fails (then you see an error, not a success).
+- **The page became unreachable.** The only way to the list was one button injected ONCE at load into `#landing .lp-head`. If `index.html` re-renders that header (e.g. after it loads your selected design) the button is gone, and there was no other entry. The list API also lived behind a screen you could only reach through that button.
+- Not verified on your live app. If pages are truly missing from the `projects` table after a restart, the cause is the database (e.g. DATABASE_URL pointing to a different/ephemeral DB), which this code can't detect: check `SELECT public_id, owner_telegram_id, created_at FROM projects;`.
 
-## 1. Root cause of "Pixel ID not found or this token has no access to that Pixel"
-`checkPixel` did `GET /{pixel_id}?fields=id,name`. A CAPI token from Events Manager is allowed to **post events** but frequently
-**not to read the Pixel object**; Meta then answers error code 100 ("…cannot be loaded due to missing permissions").
-The old code mapped **every** code 100 / 200 / 803 to "Pixel ID not found or token has no access", so valid ID+token pairs were rejected.
-(Code reading + Meta's documented behaviour; I could not call Meta live — **confirm with your real Pixel**.)
-Not the cause: Graph v21.0 is still supported until 2027-01-21. I raised the default to v25.0 (still overridable with `META_API_VERSION`).
+## 2. Permanent saving, fixed
+- Entry points are re-created by a MutationObserver whenever the host page re-renders. "Your Services" is also added to the bottom navigation (see §6 caveat).
+- Everything is read from PostgreSQL on every open (`GET /api/services`); no page state is kept in memory.
+- Saved per page: id, name, channel info, URL + ad-ready link (derived from the id), created/updated timestamps, status, encrypted bot/CAPI tokens. Analytics and history stay attached (`ON DELETE CASCADE` only if the page itself is deleted).
+- Creation is all-or-nothing: if Telegram setWebhook fails, nothing is kept (page and order). Duplicate bot/channel → 409, no second record.
 
-New validation (still real validation, nothing removed):
-1. Pixel ID must be 8–20 digits; token required.
-2. Try to read the Pixel → success = **verified**.
-3. Token invalid/expired (190) → "token invalid" (separate from pixel errors). Rate limit / Meta 5xx / network → honest message.
-4. Ambiguous "cannot read" (100/200/10/803/294): if a **Test Event Code** is entered, a probe is sent to Test Events only (never production) → proves write access; rejected if Meta refuses.
-5. Ambiguous and no Test Event Code → page is created with `pixelVerified:false` + a visible warning ("add a Test Event Code and tap SEND TEST EVENT").
-Tokens are scrubbed from all error text and never returned to the browser (tested).
+## 3. Landing page design
+Public page = emblem (channel image or initial) + **channel name** + **one JOIN NOW button**. Removed: headline, subtitle, About, What members get, Why join, FAQ, privacy accordion, footer, sticky bar, tag, micro-text. Same 4 theme palettes/fonts. Verified in headless Chrome at 390 px for all 4 designs.
+The creation form no longer asks for headline, subtitle, button text, description, guide points or the ad-only checkbox.
+Note: the removed privacy accordion explained Pixel/IP use to visitors. Check whether your ad/legal setup needs a privacy notice elsewhere.
 
-## 2. Join Request tracking (exact flow, now in code)
-Ad click → landing page (`/api/track/:id/view` saves visitor/session/first-touch attribution + a `view` event) →
-JOIN NOW (`/api/invite/:id` saves a `click` event, creates ONE unique Telegram invite link per visitor session with `creates_join_request`) →
-Telegram sends `chat_join_request` to `/api/tg/:id` (secret-token verified) → backend finds the visitor **by the invite-link hash**
-(not by the browser) → **row saved in `join_events` first** → only then Subscribe is sent to Meta.
-**Subscribe fires only when:** a verified `chat_join_request` arrives through one of OUR unique invite links, once per user per channel.
-Clicks, opening Telegram, or opening the link never send Subscribe. Join requests via other links are counted as "other" and never sent to Meta.
+## 4. Direct URLs always open
+Cause: `require_fbclid` (default ON) made JOIN NOW answer "This page only works when opened from the ad". Removed the gate completely (server + form + DB default; existing rows set to false). Ad parameters are used only for attribution. Verified in Chrome: no params → view recorded, JOIN works, redirects to Telegram.
+- Unresolved Meta macros (`{{campaign.id}}`…) opened outside an ad are discarded, never stored.
+- Source is stored as `meta_ad` / `utm_campaign` / `organic` / `referral` / `direct`; nothing is invented.
+- **Decision for you to confirm:** a real Join Request from non-ad traffic is saved and counted but **not sent to Meta** (status `skipped`), so Meta never receives a conversion that wasn't an ad conversion.
 
-## 3. CAPI reliability
-- Status in `join_events.status`: `sent`, `pending_retry`, `failed` (plus `pending` while the first try runs).
-- Temporary failures (network, 429, 5xx, Meta transient codes) → `pending_retry` with growing delays (1m, 5m, 15m, 1h, 6h, 12h, 24h), max 8 attempts, stops after 6 days (Meta limit is 7). A background worker (every 60 s, `FOR UPDATE SKIP LOCKED`) retries — also recovers rows left `pending` by a crash/restart.
-- Permanent failures (bad token, rejected payload) → `failed`, not retried.
-- Same `event_id` (`join_<chat>_<user>`) on every attempt + unique (project, chat, user) row → no duplicate Subscribe.
-- Subscribe `custom_data` now also carries `landing_page_id`, `landing_page_url`, `fbclid` (plus existing campaign/ad/UTM keys).
+## 5. One link per landing page
+Shown everywhere as the single "link": `<domain>/p/<id>?landing_page_id=<id>&campaign_id={{campaign.id}}&campaign_name={{campaign.name}}&adset_id=…&adset_name=…&ad_id=…&ad_name=…&utm_source={{site_source_name}}&utm_medium={{placement}}&utm_campaign={{campaign.name}}&utm_content={{ad.name}}&utm_term={{adset.name}}`.
+Meta fills the macros and appends `fbclid`. I removed the hard-coded `utm_source=facebook&utm_medium=paid`, otherwise a link shared on WhatsApp would be mislabeled as a paid Facebook visit. Preview is a button (tracking off), not a second link. Campaign A and B on the same page stay separate (first-touch per visitor session, stored per visit and copied onto each Join Request).
 
-## 4. Tracking URL
-Built server-side from your real page URL (`PUBLIC_BASE_URL` or the Railway domain in `server.js`):
-`<domain>/p/<id>?landing_page_id=<id>&campaign_id={{campaign.id}}&campaign_name={{campaign.name}}&adset_id=…&ad_id=…&utm_source=facebook&utm_medium=paid&utm_campaign=…&utm_content=…&utm_term=…`
-`{{…}}` are Meta macros (kept un-encoded so Meta can fill them); `fbclid` is added by Meta automatically. No duplicate keys; existing/custom params are kept;
-`GET /api/projects/:id/tracking-url?utm_source=google&…` returns a customised URL. Shown in "My Landing Pages" (ID, Copy tracking link, Share when supported, Analytics) and on the detail screen (ID, Direct URL, **Preview URL**, Tracking URL).
-Preview URL (`?preview=1`) switches off the Pixel, view tracking and invite links, so previewing never pollutes stats.
+## 6. Your Services
+Bottom-nav item "Your Services" (cloned from the Orders item so it matches) + hero button; opens a screen with tabs YOUR SERVICES | ORDERS. Each landing page card: name, ID, status, created date, link, COPY LINK, PREVIEW, ANALYTICS. "Other services" lists real non-landing orders only; nothing is invented.
+**Caveat:** I don't have `index.html`, so nav injection finds the Orders item by its text and clones it. Tested on a mock nav with Home / Landing Page / Orders / Account, not on your real one. If it doesn't appear, add `onclick="GDXProjects.openServices()"` to a nav item.
 
-## 5. Attribution
-Stored first-touch on the visitor row, copied as a snapshot into `join_events.attribution` at join time. If the click request lost the ad params, the saved first-touch values are used.
-No attribution ⇒ shown as **Unattributed**; nothing is guessed. A session is scoped to one landing page (tested: Page A's session can't attribute to Page B).
+## 7. Orders
+- Every landing page created from now on creates a real order (service "Landing Page - <name>", amount 0.00 because creation isn't charged in your code, status completed), linked by `orders.project_id`, one per page. Old pages are NOT back-filled; they appear only in Your Services.
+- Orders tab: order id (GDX-000123), service, date, status, landing page ID + link, COPY LINK, VIEW DETAILS. Detail: the full analytics + campaign breakdown + history of that page. Only the buyer can open an order (404 otherwise). Deleting a page keeps its order.
+- I did not modify your existing Orders screen (it lives in `index.html`); the new Orders tab is in the overlay. `GET /api/orders` is unchanged.
 
-## 6. Analytics (per landing page, `GET /api/projects/:id` → `analytics`, or `/analytics`)
-Total / today page views, unique visitors, JOIN NOW clicks, Join Requests, clicks-without-Join-Request, three rates, funnel, CAPI status counts, breakdown by Campaign / Ad set / Ad / UTM source / medium / campaign / content (incl. Unattributed), recent activity.
-- Conversion Rate = Join Requests ÷ Unique Visitors × 100 · CTR = JOIN NOW clicks ÷ Page Views × 100 · Join Request Rate = Join Requests ÷ JOIN NOW clicks × 100. Zero denominator ⇒ "—".
-- Clicks without Join Request = **unique visitors** who clicked and have no Join Request (3 clicks by one person count once; never negative).
-- **Telegram Opened** and **Confirmed Members** show *Unavailable*: the browser can't tell if Telegram opened, and the webhook only receives requests, not approvals.
-- "Today" uses `ANALYTICS_TIMEZONE` (default UTC).
-- Numbers come from new event tables, so they start from deployment day; the old 30-day counters remain (relabelled "RAW COUNTERS"; "Join attempts (all)" includes blocked/bot attempts, so it is higher than JOIN NOW clicks).
-- Every query is filtered by the project's id, resolved through owner check (404 for other users).
+## 8. Analytics and history
+Overview, rates (formulas shown on screen), funnel (Telegram Opened and Confirmed Members = Unavailable), breakdown by Source / Campaign / Ad set / Ad / UTM*, CAPI counts incl. skipped. History (`GET /api/projects/:id/history`, also in details): created, updated, page opened, JOIN NOW clicked, Join Request received, Meta Subscribe sent / failed / will retry / skipped, order created — real records with timestamps, owner-only. New table `project_history`; clicks/views/joins come from their own tables.
 
-## 7. Database migration (automatic, additive, idempotent — runs in `projects.init()` at startup)
-No tables dropped/recreated. Adds: `join_events.event_time`, `join_events.next_retry_at`; `'pending_retry'` allowed in the status CHECK; new table `track_events`; 4 indexes.
-Optional (run once, manually) to re-queue old transient failures that are still < 6 days old:
-```sql
-UPDATE join_events SET status='pending_retry', next_retry_at=NOW()
-WHERE status='failed' AND created_at > NOW() - INTERVAL '6 days'
-  AND (capi_http_status = 0 OR capi_http_status = 429 OR capi_http_status >= 500);
-```
-Back up the database before first deploy as usual.
+## 9. Attribution and Subscribe trigger
+Visit (view event, first-touch attribution) → JOIN NOW (click event; one unique invite link per visitor session) → Telegram `chat_join_request` found **by invite-link hash**, not by the browser → row saved in `join_events` → **only then** Subscribe to Meta, and only if the visitor came from a Meta ad (fbclid / fbc / campaign / ad set / ad id). Never on view, click, link opening or link creation. One row/Subscribe per user per channel; failures stay saved and are retried (v2 worker).
 
-## 8. Environment variable NAMES
-Existing: `BOT_TOKEN`, `ADMIN_TELEGRAM_ID`, `DATABASE_URL`, `TOKEN_ENCRYPTION_KEY`, `PUBLIC_BASE_URL` (optional), `META_API_VERSION` (optional), `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET` (optional), `RAILWAY_VOLUME_MOUNT_PATH`, `PORT`.
-New (optional): `ANALYTICS_TIMEZONE` (e.g. `Asia/Kolkata`).
+## 10. Migration (automatic at startup, additive)
+`visitors.source_type`; `projects.require_fbclid` default false + existing rows set false; `projects.headline` default ''; new table `project_history`; `orders.project_id` (+ unique index per page). No table dropped.
 
-## 9. Test results (actually executed: `node tests/run.js` → 44 tests)
-Environment limits: no PostgreSQL, no `express`/`pg` installed, no network. Tests run the REAL `projects.js`/`integrations.js`/`landing-page.js` code against a fake router, an in-memory store with the same contract as the SQL store, mocked Telegram/Meta `fetch`, and a test-only `secure.js` stub (`tests/secure.stub.js`).
-**Round 1: 25/25 passed. Round 2: 19/19 passed.**
-Before Round 1 passed, my first run failed 25 tests because of a bug in my own fake router (not in the app); fixed. During the review I also fixed one real SQL risk (`at` used as a column alias → renamed `occurred_at`).
-I also mutation-checked the suite (removed click recording, Subscribe sending, ownership check, retries): the suite failed as expected.
+## 11. Tests (executed)
+`node tests/run.js` → **R1 24/24, R2 19/19, R3 18/18 (61 tests)**: real code vs mocks (fake router, in-memory store, mocked Telegram/Meta, test-only secure stub).
+R3 covers: create with minimal fields; **restart persistence** (new server instance, same DB); saved fields; no duplicates; rollback; minimal page markup; direct URL / junk params / macros always 200; direct visitor join saved but not sent to Meta; macro stripping; source classification; ad attribution per campaign; Your Services; Orders + detail + cross-user 404; old pages without orders; deleted page keeps order; history; cross-user on every endpoint; repeat clicks/drop-off/duplicate webhook/Meta failure/DB failure.
+Browser (headless Chrome, `tests/browser/`): the real page JS (direct, Meta-ad URL, unresolved macros → correct payloads and Telegram redirect) and the real dashboard JS against the real server routes (nav injection, re-injection after host re-render, Services, detail, Orders, order detail): no script errors.
 
-Round 1: Pixel valid/invalid/missing/ambiguous(root-cause)/bad token/rate-limit/network/token-scrubbing · validation kept · Telegram channel + admin checks · landing page creation & URLs · tracking URL rules · PageView & unique visitors · JOIN click & repeat click · webhook secret · DB-first Join Request + Subscribe payload · non-landing-link requests · duplicate webhooks · analytics math & funnel · auth/ownership · CAPI dedup · preview mode.
-Round 2: missing UTMs · two campaigns on one page · lost-attribution recovery · Meta 500 / network failure · retry worker (timing, single send) · webhook re-delivery · invalid token (no retry) · max attempts & backoff · stale events · DB failure (Meta not called) · multiple pages per user · session isolation · cross-user writes · zero-denominator math · test-event route · paused page · no secrets/user-ids in analytics · UI rendering + HTML escaping.
-
-## 10. NOT TESTED (needs your environment/credentials)
-- Real PostgreSQL: the new SQL (analytics queries, `claimRetryJoins`, migration, CHECK-constraint swap) is reviewed but **not executed**. Deploy to a staging DB first and open one landing page's detail screen.
-- Live Meta: Pixel validation with your real Pixel/token (root cause is code-analysis based), real Subscribe delivery, Test Events tab, dedup in Events Manager.
-- Live Telegram: real `chat_join_request` webhook, real invite links.
-- Browser/mobile rendering of the new UI blocks (only the HTML-string generation was executed; no browser/Telegram WebApp available).
-- Your real `secure.js`, `index.html`, `landing.html`, `project-theme.js` (not provided).
-- `landing-templates.js` ends with a stray `require('./project-schema')` line (looks like a paste artifact, harmless); left untouched.
+## 12. NOT TESTED
+- Real PostgreSQL (new SQL: history UNION, orders join, migration) — staging first.
+- Live Meta + Telegram (Pixel validation, Subscribe delivery, real chat_join_request, real invite links).
+- Your real `index.html` (nav placement, existing Orders screen), real Telegram WebApp, real `secure.js`.

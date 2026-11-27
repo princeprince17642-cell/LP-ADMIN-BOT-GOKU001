@@ -162,6 +162,8 @@
     body.scrollTop = 0;
     if (cur.screen === 'form') renderForm(cur.args);
     else if (cur.screen === 'list') renderList();
+    else if (cur.screen === 'orders') renderOrders();
+    else if (cur.screen === 'order') renderOrder(cur.args.id);
     else if (cur.screen === 'detail') renderDetail(cur.args.id);
   }
 
@@ -215,20 +217,12 @@
 
     h += '<div class="gp-card"><div class="gp-h">' + (edit ? 'PAGE CONTENT' : '4. PAGE CONTENT') + '</div>' +
       '<label for="gp-name">Channel / community name</label><input type="text" id="gp-name" maxlength="60" autocomplete="off" value="' + esc(edit ? p.channelName : '') + '" placeholder="e.g. My Community"><div class="gp-err" data-err="channelName"></div>' +
-      '<label for="gp-headline">Headline <small>(one-line offer)</small></label><input type="text" id="gp-headline" maxlength="120" autocomplete="off" value="' + esc(edit ? p.headline : 'UNLOCK YOUR FULL GUIDE') + '"><div class="gp-err" data-err="headline"></div>' +
-      '<label for="gp-sub">Subtitle <small>(optional)</small></label><input type="text" id="gp-sub" maxlength="200" autocomplete="off" value="' + esc(c.subtitle || '') + '" placeholder="A short line under the headline"><div class="gp-err" data-err="subtitle"></div>' +
-      '<label for="gp-button">Button text</label><input type="text" id="gp-button" maxlength="30" autocomplete="off" value="' + esc(edit ? p.buttonText : 'JOIN NOW') + '"><div class="gp-err" data-err="buttonText"></div>' +
-      '<label for="gp-image">Channel image URL <small>(https, optional)</small></label><input type="url" id="gp-image" autocomplete="off" value="' + esc(edit ? p.imageUrl : '') + '" placeholder="https://..."><div class="gp-err" data-err="imageUrl"></div>' +
-      '<label for="gp-desc">About the community <small>(optional, max 400)</small></label><textarea id="gp-desc" maxlength="400" placeholder="Tell visitors what your community is about">' + esc(c.description || '') + '</textarea><div class="gp-err" data-err="description"></div>' +
-      '<label for="gp-guide">What members get <small>(one per line, max 5, optional)</small></label><textarea id="gp-guide" placeholder="Leave empty to use a simple default guide">' + esc(guide) + '</textarea><div class="gp-err" data-err="guidePoints"></div></div>';
+      '<label for="gp-image">Channel image URL <small>(https, optional)</small></label><input type="url" id="gp-image" autocomplete="off" value="' + esc(edit ? p.imageUrl : '') + '" placeholder="https://..."><div class="gp-err" data-err="imageUrl"></div></div>';
 
     h += '<div class="gp-card"><div class="gp-h">' + (edit ? 'THEME' : '5. THEME') + '</div><div class="gp-sub">Accent color</div><div class="gp-chips" id="gp-sws">' + swHtml + '</div>' +
       '<div class="gp-sub" style="margin-top:14px">Background style</div><div class="gp-chips" id="gp-bgs">' + bgHtml + '</div><div class="gp-err" data-err="theme"></div></div>';
 
-    h += '<div class="gp-card"><div class="gp-h">PROTECTION</div>' +
-      '<label class="gp-check"><input type="checkbox" id="gp-fbclid"' + ((!edit || p.requireFbclid) ? ' checked' : '') + '><span>Only allow Meta ad traffic (visitors must arrive with a Meta ad click id). Recommended. It blocks fake and bot clicks.</span></label>';
-    if (cfg && cfg.turnstileAvailable) h += '<label class="gp-check"><input type="checkbox" id="gp-ts"' + (edit && p.turnstileEnabled ? ' checked' : '') + '><span>Show a Cloudflare Turnstile check on the Join button.</span></label>';
-    h += '</div>';
+    if (cfg && cfg.turnstileAvailable) h += '<div class="gp-card"><div class="gp-h">PROTECTION</div><label class="gp-check"><input type="checkbox" id="gp-ts"' + (edit && p.turnstileEnabled ? ' checked' : '') + '><span>Show a Cloudflare Turnstile check on the Join button.</span></label></div>';
 
     h += '<div class="gp-err" id="gp-top-err" style="margin:0 0 10px;font-size:13.5px"></div>';
     h += '<button type="button" class="gp-btn gold wide" id="gp-submit">' + (edit ? 'SAVE CHANGES' : 'CREATE LANDING PAGE') + '</button>';
@@ -293,9 +287,8 @@
     var tplOn = body.querySelector('.gp-tpl.on');
     var o = {
       templateKey: tplOn ? tplOn.getAttribute('data-tpl') : lastKey,
-      channelName: val('gp-name'), headline: val('gp-headline'), subtitle: val('gp-sub'), buttonText: val('gp-button'),
-      imageUrl: val('gp-image'), description: val('gp-desc'), guidePoints: val('gp-guide').split('\n').map(function (x) { return x.trim(); }).filter(Boolean),
-      testEventCode: val('gp-test'), theme: theme, requireFbclid: !!$('gp-fbclid').checked, turnstileEnabled: !!($('gp-ts') && $('gp-ts').checked)
+      channelName: val('gp-name'), imageUrl: val('gp-image'),
+      testEventCode: val('gp-test'), theme: theme, turnstileEnabled: !!($('gp-ts') && $('gp-ts').checked)
     };
     if (!edit) { o.pixelId = val('gp-pixel'); o.capiToken = val('gp-capi'); o.botToken = val('gp-bot'); o.channelId = val('gp-channel'); }
     return o;
@@ -355,15 +348,17 @@
   function canShare() { return !!((tg && tg.openTelegramLink) || navigator.share); }
   function num(n) { return (n === null || n === undefined) ? 'Unavailable' : Number(n).toLocaleString('en-IN'); }
   function rate(r) { return (r === null || r === undefined) ? '&mdash;' : r + '%'; }
-  var DIMS = [['campaign', 'Campaign'], ['adset', 'Ad set'], ['ad', 'Ad'], ['utm_source', 'UTM source'], ['utm_medium', 'UTM medium'], ['utm_campaign', 'UTM campaign'], ['utm_content', 'UTM content']];
-  var ACT = { page_view: 'Page view', join_click: 'JOIN NOW click', join_request: 'Telegram Join Request' };
+  var DIMS = [['campaign', 'Campaign'], ['adset', 'Ad set'], ['ad', 'Ad'], ['utm_source', 'UTM source'], ['utm_medium', 'UTM medium'], ['utm_campaign', 'UTM campaign'], ['utm_content', 'UTM content'], ['source_type', 'Source']];
+  var ACT = { page_view: 'Page opened', join_click: 'JOIN NOW clicked', join_request: 'Telegram Join Request received', created: 'Landing page created', updated: 'Landing page updated',
+    capi_sent: 'Meta Subscribe sent', capi_failed: 'Meta Subscribe failed', capi_retry: 'Meta Subscribe will retry', capi_skipped: 'Join Request saved (not from a Meta ad, not sent to Meta)', order_created: 'Order created' };
+  var SRC = { meta_ad: 'Meta ad', utm_campaign: 'Campaign link', organic: 'Organic', referral: 'Referral', direct: 'Direct' };
   var CAPI_TXT = { sent: 'Meta: sent', pending_retry: 'Meta: will retry', failed: 'Meta: failed', pending: 'Meta: sending' };
 
   function breakdownTable(a, dim) {
     var rows = (a.breakdowns[dim] || []);
     if (!rows.length) return '<div class="gp-sub" style="margin:0">No traffic yet.</div>';
     return '<table class="gp-tbl"><tr><th>' + esc(dim.replace('_', ' ').toUpperCase()) + '</th><th>VISITS</th><th>CLICKS</th><th>JOIN REQ.</th><th>CONV.</th></tr>' + rows.map(function (r) {
-      var label = r.unattributed ? 'Unattributed' : esc(r.name || r.key) + (r.name && r.key !== r.name ? '<br><small style="color:#7f8cab">' + esc(r.key) + '</small>' : '');
+      var label = r.unattributed ? 'Unattributed / unknown' : (dim === 'source_type' ? esc(SRC[r.key] || r.key) : esc(r.name || r.key) + (r.name && r.key !== r.name ? '<br><small style="color:#7f8cab">' + esc(r.key) + '</small>' : ''));
       return '<tr><td>' + label + '</td><td>' + r.visits + '</td><td>' + r.clicks + '</td><td>' + r.joinRequests + '</td><td>' + rate(r.conversionRate) + '</td></tr>';
     }).join('') + '</table>';
   }
@@ -385,7 +380,7 @@
 
     h += '<div class="gp-card"><div class="gp-h">FUNNEL</div>' + a.funnel.map(function (f, i) {
       return '<div class="gp-code" style="margin-top:' + (i ? 6 : 0) + 'px"><b>' + esc(f.label) + ':</b> ' + (f.value === null ? 'Unavailable' : num(f.value)) + (f.note && f.value === null ? '<br><small style="color:#7f8cab">' + esc(f.note) + '</small>' : '') + '</div>';
-    }).join('') + '<div class="gp-sub" style="margin:10px 0 0">Meta (CAPI) delivery of Join Requests: sent <b>' + a.capi.sent + '</b> &middot; will retry <b>' + (a.capi.pendingRetry + a.capi.pending) + '</b> &middot; failed <b>' + a.capi.failed + '</b>' +
+    }).join('') + '<div class="gp-sub" style="margin:10px 0 0">Meta (CAPI) delivery of Join Requests: sent <b>' + a.capi.sent + '</b> &middot; will retry <b>' + (a.capi.pendingRetry + a.capi.pending) + '</b> &middot; failed <b>' + a.capi.failed + '</b> &middot; not from a Meta ad (not sent) <b>' + (a.capi.skipped || 0) + '</b>' +
       (a.otherJoinRequests ? '<br>Join requests not made through your page (never sent to Meta): <b>' + a.otherJoinRequests + '</b>' : '') + '</div></div>';
 
     h += '<div class="gp-card"><div class="gp-h">CAMPAIGN BREAKDOWN</div><div class="gp-chips" id="d-dims" style="margin-bottom:10px">' + DIMS.map(function (x, i) {
@@ -395,29 +390,97 @@
     h += '<div class="gp-card"><div class="gp-h">RECENT ACTIVITY</div>';
     if (!a.recent.length) h += '<div class="gp-sub" style="margin:0">No activity yet.</div>';
     else h += a.recent.map(function (r) {
-      return '<div class="gp-code">' + esc(ACT[r.type] || r.type) + ' &middot; ' + esc(fmtDate(r.at)) + (r.campaignName || r.campaignId ? '<br>' + esc(r.campaignName || r.campaignId) : '<br>Unattributed') + (r.capiStatus ? '<br>' + esc(CAPI_TXT[r.capiStatus] || r.capiStatus) : '') + '</div>';
+      return '<div class="gp-code">' + esc(ACT[r.type] || r.type) + ' &middot; ' + esc(fmtDate(r.at)) + (r.type === 'page_view' || r.type === 'join_click' || r.type === 'join_request' ? (r.campaignName || r.campaignId ? '<br>' + esc(r.campaignName || r.campaignId) : '<br>' + esc(SRC[r.sourceType] || 'Unattributed')) : '') + (r.capiStatus ? '<br>' + esc(CAPI_TXT[r.capiStatus] || r.capiStatus) : '') + '</div>';
     }).join('');
     return h + '</div>';
   }
 
   // ---------- LIST ----------
+  // ---------- YOUR SERVICES / ORDERS (always loaded from the database) ----------
+  function tabs(active) {
+    return '<div class="gp-row" style="margin:0 0 14px"><button type="button" class="gp-btn sm ' + (active === 'services' ? 'gold' : 'ghost') + '" data-tab="list" style="flex:1">YOUR SERVICES</button>' +
+      '<button type="button" class="gp-btn sm ' + (active === 'orders' ? 'gold' : 'ghost') + '" data-tab="orders" style="flex:1">ORDERS</button></div>';
+  }
+  function bindTabs() {
+    body.querySelectorAll('[data-tab]').forEach(function (b) { b.addEventListener('click', function () { push(b.getAttribute('data-tab'), {}, true); }); });
+  }
+  function dateOnly(v) { try { return new Date(v).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }); } catch (e) { return ''; } }
+
   function renderList() {
-    titleEl.textContent = 'MY LANDING PAGES';
+    titleEl.textContent = 'YOUR SERVICES';
     body.innerHTML = '<div class="gp-empty">Loading...</div>';
-    api('/api/projects').then(function (d) {
-      var h = '<button type="button" class="gp-btn gold wide" id="gp-new" style="margin:0 0 14px">+ NEW PROJECT</button>';
-      if (!d.projects.length) h += '<div class="gp-empty">No projects yet.<br>Select a design in Landing Pages and tap BUY NOW.</div>';
-      else h += '<div class="gp-list">' + d.projects.map(function (p) {
-        return '<div style="display:flex;flex-direction:column;gap:6px"><button type="button" class="gp-item" data-open="' + esc(p.id) + '"><div style="flex:1;min-width:0"><b>' + esc(p.channelName) + '</b><span>' + esc(tplName(p.templateKey)) + ' &middot; ' + (p.joinRequests || 0) + ' join requests</span><span>ID: ' + esc(p.id) + '</span></div><span class="gp-chip2 ' + esc(p.status) + '">' + esc(p.status.toUpperCase()) + '</span></button>' +
-          '<div class="gp-row"><button type="button" class="gp-btn sm ghost" data-lcopy="' + esc(p.id) + '" style="flex:1">COPY TRACKING LINK</button>' + (canShare() ? '<button type="button" class="gp-btn sm ghost" data-lshare="' + esc(p.id) + '" style="flex:1">SHARE</button>' : '') + '<button type="button" class="gp-btn sm ghost" data-open="' + esc(p.id) + '" style="flex:1">ANALYTICS</button></div></div>';
-      }).join('') + '</div>';
-      body.innerHTML = h;
+    api('/api/services').then(function (d) {
+      var h = tabs('services') + '<button type="button" class="gp-btn gold wide" id="gp-new" style="margin:0 0 14px">+ NEW LANDING PAGE</button>';
+      if (!d.landingPages.length && !d.otherServices.length) h += '<div class="gp-empty">You have no services yet.<br>Select a design in Landing Pages and tap BUY NOW.</div>';
+      h += d.landingPages.map(function (p) {
+        return '<div class="gp-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div style="min-width:0"><b style="font-size:15px">' + esc(p.channelName) + '</b>' +
+          '<div class="gp-sub" style="margin:2px 0 0">Landing page &middot; ID ' + esc(p.landingPageId) + '<br>Created ' + esc(dateOnly(p.createdAt)) + '</div></div><span class="gp-chip2 ' + esc(p.status) + '">' + esc(p.status.toUpperCase()) + '</span></div>' +
+          '<div class="gp-url" style="margin-top:10px"><span style="flex:1">' + esc(p.pageUrl) + '</span></div><div class="gp-sub" style="margin:4px 0 0">COPY LINK copies the ad-ready link with tracking.</div>' +
+          '<div class="gp-row" style="margin-top:10px"><button type="button" class="gp-btn sm" data-lcopy="' + esc(p.id) + '" style="flex:1">COPY LINK</button>' +
+          '<button type="button" class="gp-btn sm green" data-lprev="' + esc(p.id) + '" style="flex:1">PREVIEW</button>' +
+          '<button type="button" class="gp-btn sm ghost" data-open="' + esc(p.id) + '" style="flex:1">ANALYTICS</button></div></div>';
+      }).join('');
+      if (d.otherServices.length) {
+        h += '<div class="gp-h" style="margin:14px 0 8px">OTHER SERVICES</div>' + d.otherServices.map(function (o) {
+          return '<div class="gp-card"><div style="display:flex;justify-content:space-between;gap:10px"><div><b>' + esc(o.name) + '</b><div class="gp-sub" style="margin:2px 0 0">Order ' + esc(o.orderCode) + ' &middot; ' + esc(dateOnly(o.createdAt)) + '</div></div><span class="gp-chip2">' + esc(String(o.status).toUpperCase()) + '</span></div></div>';
+        }).join('');
+      }
+      body.innerHTML = h; bindTabs();
       $('gp-new').addEventListener('click', function () { push('form', { templateKey: lastKey }); });
+      function byId(id) { for (var i = 0; i < d.landingPages.length; i++) if (d.landingPages[i].id === id) return d.landingPages[i]; return null; }
       body.querySelectorAll('[data-open]').forEach(function (b) { b.addEventListener('click', function () { push('detail', { id: b.getAttribute('data-open') }); }); });
-      function byId(id) { for (var i = 0; i < d.projects.length; i++) if (d.projects[i].id === id) return d.projects[i]; return null; }
-      body.querySelectorAll('[data-lcopy]').forEach(function (b) { b.addEventListener('click', function () { var p = byId(b.getAttribute('data-lcopy')); if (p) copy(p.trackingUrl); }); });
-      body.querySelectorAll('[data-lshare]').forEach(function (b) { b.addEventListener('click', function () { var p = byId(b.getAttribute('data-lshare')); if (p) shareLink(p.trackingUrl, p.channelName); }); });
+      body.querySelectorAll('[data-lcopy]').forEach(function (b) { b.addEventListener('click', function () { var p = byId(b.getAttribute('data-lcopy')); if (p) copy(p.link); }); });
+      body.querySelectorAll('[data-lprev]').forEach(function (b) { b.addEventListener('click', function () { var p = byId(b.getAttribute('data-lprev')); if (p) openLink(p.previewUrl); }); });
+    }).catch(function (e) { body.innerHTML = '<div class="gp-empty">' + esc(errText(e)) + '<br><br><button type="button" class="gp-btn sm ghost" id="gp-retry">TRY AGAIN</button></div>'; var r = $('gp-retry'); if (r) r.addEventListener('click', renderList); });
+  }
+
+  function renderOrders() {
+    titleEl.textContent = 'ORDERS';
+    body.innerHTML = '<div class="gp-empty">Loading...</div>';
+    api('/api/my-orders').then(function (d) {
+      var h = tabs('orders');
+      if (!d.orders.length) h += '<div class="gp-empty">No orders yet.</div>';
+      h += d.orders.map(function (o) {
+        return '<div class="gp-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div style="min-width:0"><b>' + esc(o.service) + '</b>' +
+          '<div class="gp-sub" style="margin:2px 0 0">Order ' + esc(o.code) + ' &middot; ' + esc(dateOnly(o.createdAt)) + (o.landingPageId ? '<br>Landing page ID ' + esc(o.landingPageId) : '') + '</div></div><span class="gp-chip2">' + esc(String(o.status).toUpperCase()) + '</span></div>' +
+          (o.link ? '<div class="gp-url" style="margin-top:10px"><span style="flex:1">' + esc(o.pageUrl) + '</span></div>' : '') +
+          '<div class="gp-row" style="margin-top:10px">' + (o.link ? '<button type="button" class="gp-btn sm" data-ocopy="' + esc(o.id) + '" style="flex:1">COPY LINK</button>' : '') + '<button type="button" class="gp-btn sm ghost" data-order="' + esc(o.id) + '" style="flex:1">VIEW DETAILS</button></div></div>';
+      }).join('');
+      body.innerHTML = h; bindTabs();
+      body.querySelectorAll('[data-order]').forEach(function (b) { b.addEventListener('click', function () { push('order', { id: b.getAttribute('data-order') }); }); });
+      body.querySelectorAll('[data-ocopy]').forEach(function (b) { b.addEventListener('click', function () { d.orders.forEach(function (o) { if (o.id === b.getAttribute('data-ocopy')) copy(o.link); }); }); });
     }).catch(function (e) { body.innerHTML = '<div class="gp-empty">' + esc(errText(e)) + '</div>'; });
+  }
+
+  function renderOrder(id) {
+    titleEl.textContent = 'ORDER DETAILS';
+    body.innerHTML = '<div class="gp-empty">Loading...</div>';
+    api('/api/my-orders/' + id).then(function (d) {
+      var o = d.order;
+      var h = '<div class="gp-card"><div style="display:flex;justify-content:space-between;gap:10px"><div><b style="font-size:16px">' + esc(o.service) + '</b><div class="gp-sub" style="margin:2px 0 0">Order ' + esc(o.code) + '<br>' + esc(fmtDate(o.createdAt)) + '<br>Amount: ' + esc(o.amount.toFixed(2)) + '</div></div><span class="gp-chip2">' + esc(String(o.status).toUpperCase()) + '</span></div></div>';
+      if (d.project) {
+        var p = d.project;
+        h += '<div class="gp-card"><div class="gp-h">LANDING PAGE</div><div class="gp-sub"><b>' + esc(p.channelName) + '</b><br>ID: ' + esc(p.landingPageId) + '</div><div class="gp-url"><span style="flex:1">' + esc(p.link) + '</span></div>' +
+          '<div class="gp-row" style="margin-top:10px"><button type="button" class="gp-btn sm" id="o-copy" style="flex:1">COPY LINK</button><button type="button" class="gp-btn sm green" id="o-prev" style="flex:1">PREVIEW</button><button type="button" class="gp-btn sm ghost" id="o-open" style="flex:1">MANAGE</button></div></div>';
+        h += analyticsHtml(d.analytics);
+      } else if (o.landingPageId) h += '<div class="gp-card"><div class="gp-sub" style="margin:0">The landing page of this order was deleted. Its analytics are gone with it.</div></div>';
+      body.innerHTML = h;
+      if (d.project) {
+        $('o-copy').addEventListener('click', function () { copy(d.project.link); });
+        $('o-prev').addEventListener('click', function () { openLink(d.project.previewUrl); });
+        $('o-open').addEventListener('click', function () { push('detail', { id: d.project.id }); });
+        bindDims(d.analytics);
+      }
+    }).catch(function (e) { body.innerHTML = '<div class="gp-empty">' + esc(errText(e)) + '</div>'; });
+  }
+  function bindDims(a) {
+    var dimBox = $('d-dims');
+    if (dimBox) dimBox.querySelectorAll('[data-dim]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        dimBox.querySelectorAll('[data-dim]').forEach(function (x) { x.classList.remove('on'); });
+        b.classList.add('on'); $('d-bd').innerHTML = breakdownTable(a, b.getAttribute('data-dim'));
+      });
+    });
   }
 
   // ---------- DETAIL ----------
@@ -432,28 +495,15 @@
       titleEl.textContent = p.channelName.toUpperCase();
       var h = '<div class="gp-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div><b style="font-size:16px">' + esc(p.channelName) + '</b><div class="gp-sub" style="margin:2px 0 0">' + esc(tplName(p.templateKey)) + ' &middot; bot @' + esc(p.botUsername) + '</div></div><span class="gp-chip2 ' + esc(p.status) + '">' + esc(p.status.toUpperCase()) + '</span></div></div>';
 
-      h += '<div class="gp-card"><div class="gp-h">BOT &amp; CHANNEL CONNECTION</div><div class="gp-sub" style="margin:0 0 8px">Bot <b>@' + esc(p.botUsername) + '</b> &middot; Channel <b>' + esc(p.channelTitle) + '</b> &middot; Webhook: <b>' + (p.webhookConnected ? 'connected' : 'not connected') + '</b></div><div id="d-conn"></div><button type="button" class="gp-btn sm ghost" id="d-check">CHECK CONNECTION</button></div>';
 
-      h += '<div class="gp-card"><div class="gp-h">YOUR LANDING PAGE</div><div class="gp-sub">ID: <b>' + esc(p.landingPageId) + '</b><br>Direct URL (no ad parameters):</div><div class="gp-url"><span style="flex:1">' + esc(p.directUrl) + '</span></div>' +
-        '<div class="gp-sub" style="margin-top:10px">Preview URL (tracking OFF, nothing is counted):</div><div class="gp-url"><span style="flex:1">' + esc(p.previewUrl) + '</span></div>' +
-        '<div class="gp-sub" style="margin-top:10px">Tracking URL &mdash; use this as the destination URL in your Meta ad. Meta fills the {{...}} values and adds fbclid itself.</div><div class="gp-url" id="d-track"><span style="flex:1">' + esc(p.trackingUrl) + '</span></div>' +
-        '<div class="gp-row" style="margin-top:10px"><button type="button" class="gp-btn sm" id="d-copy" style="flex:1">COPY TRACKING LINK</button>' + (canShare() ? '<button type="button" class="gp-btn sm ghost" id="d-share" style="flex:1">SHARE</button>' : '') + '<button type="button" class="gp-btn sm green" id="d-open" style="flex:1">OPEN PREVIEW</button></div>' +
+      h += '<div class="gp-card"><div class="gp-h">YOUR LINK</div><div class="gp-sub">ID: <b>' + esc(p.landingPageId) + '</b> &middot; Created ' + esc(fmtDate(p.createdAt)) + '<br>One link for everything: paste it in your Meta ad or share it anywhere. Campaign details are filled in by Meta and tracked automatically.</div><div class="gp-url" id="d-track"><span style="flex:1">' + esc(p.link) + '</span></div>' +
+        '<div class="gp-row" style="margin-top:10px"><button type="button" class="gp-btn sm" id="d-copy" style="flex:1">COPY LINK</button>' + (canShare() ? '<button type="button" class="gp-btn sm ghost" id="d-share" style="flex:1">SHARE</button>' : '') + '<button type="button" class="gp-btn sm green" id="d-open" style="flex:1">PREVIEW</button></div>' +
         '<div class="gp-row" style="margin-top:8px"><button type="button" class="gp-btn sm ghost" id="d-dl" style="flex:1">DOWNLOAD HTML</button><button type="button" class="gp-btn sm ghost" id="d-test" style="flex:1">SEND TEST EVENT</button></div>' +
         (p.testEventCode ? '' : '<div class="gp-ok warn">Test events need a Test Event Code (Edit project). This keeps test data out of your real conversions.</div>') + '<div id="d-msg"></div></div>';
 
-      h += '<div class="gp-card"><div class="gp-h">RAW COUNTERS (LAST 30 DAYS)</div><div class="gp-grid">' + STAT_LABELS.map(function (l) {
-        return '<div class="gp-stat"><small>' + l[1].toUpperCase() + '</small><b>' + (t[l[0]] || 0) + '</b></div>';
-      }).join('') + '</div><div class="gp-sub" style="margin:10px 0 0">Other join requests (not through your page, never sent to Meta): <b>' + (t.unattributed_join_requests || 0) + '</b>' +
-        (s.blocked.length ? '<br>Blocked: ' + s.blocked.map(function (b) { return esc(b.reason) + ' (' + b.count + ')'; }).join(', ') : '') + '</div></div>';
 
       if (d.analytics) h += analyticsHtml(d.analytics);
-      h += '<div class="gp-card"><div class="gp-h">WHICH AD BROUGHT THE JOINS</div>';
-      if (!s.attribution.length) h += '<div class="gp-sub" style="margin:0">No join requests yet.</div>';
-      else h += '<table class="gp-tbl"><tr><th>CAMPAIGN</th><th>AD SET</th><th>AD</th><th>JOINS</th></tr>' + s.attribution.map(function (a) {
-        function cell(n, i) { return esc(n || i) + (n ? '<br><small style="color:#7f8cab">' + esc(i) + '</small>' : ''); }
-        return '<tr><td>' + cell(a.campaignName, a.campaignId) + '</td><td>' + cell(a.adsetName, a.adsetId) + '</td><td>' + cell(a.adName, a.adId) + '</td><td>' + a.joins + '</td></tr>';
-      }).join('') + '</table>';
-      h += '</div>';
+      h += '<div class="gp-card"><div class="gp-h">BOT &amp; CHANNEL CONNECTION</div><div class="gp-sub" style="margin:0 0 8px">Bot <b>@' + esc(p.botUsername) + '</b> &middot; Channel <b>' + esc(p.channelTitle) + '</b> &middot; Webhook: <b>' + (p.webhookConnected ? 'connected' : 'not connected') + '</b></div><div id="d-conn"></div><button type="button" class="gp-btn sm ghost" id="d-check">CHECK CONNECTION</button></div>';
 
       h += '<div class="gp-card"><div class="gp-h">RECENT META (CAPI) RESULTS</div>';
       if (!s.recentCapi.length) h += '<div class="gp-sub" style="margin:0">Nothing sent yet.</div>';
@@ -462,14 +512,13 @@
       }).join('');
       h += '</div>';
 
-      h += '<div class="gp-card"><div class="gp-h">META AD URL PARAMETERS</div><div class="gp-sub">Paste this in your ad &gt; Tracking &gt; URL parameters so every join is linked to its campaign, ad set and ad.</div><div class="gp-code" id="d-params">' + esc(d.adParams) + '</div><button type="button" class="gp-btn sm ghost" id="d-copyp" style="margin-top:8px">COPY PARAMETERS</button></div>';
 
       h += '<div class="gp-row"><button type="button" class="gp-btn ghost" id="d-edit" style="flex:1">EDIT</button><button type="button" class="gp-btn ghost" id="d-pause" style="flex:1">' + (p.status === 'active' ? 'PAUSE' : 'RESUME') + '</button><button type="button" class="gp-btn red" id="d-del" style="flex:1">DELETE</button></div>';
       body.innerHTML = h;
 
       $('d-check').addEventListener('click', function () { checkConn(p); });
-      $('d-copy').addEventListener('click', function () { copy(p.trackingUrl); });
-      if ($('d-share')) $('d-share').addEventListener('click', function () { shareLink(p.trackingUrl, p.channelName); });
+      $('d-copy').addEventListener('click', function () { copy(p.link); });
+      if ($('d-share')) $('d-share').addEventListener('click', function () { shareLink(p.link, p.channelName); });
       $('d-open').addEventListener('click', function () { openLink(p.previewUrl); });
       var dimBox = $('d-dims');
       if (dimBox) dimBox.querySelectorAll('[data-dim]').forEach(function (b) {
@@ -478,7 +527,6 @@
           b.classList.add('on'); $('d-bd').innerHTML = breakdownTable(d.analytics, b.getAttribute('data-dim'));
         });
       });
-      $('d-copyp').addEventListener('click', function () { copy(d.adParams); });
       $('d-edit').addEventListener('click', function () { push('form', { project: p }); });
       $('d-dl').addEventListener('click', function () { download(p); });
       $('d-test').addEventListener('click', function () { testEvent(p); });
@@ -549,16 +597,54 @@
     if (!tg || !tg.initData) { toast('Please open GDX STORE inside Telegram.', 'err'); return; }
     ensureDom(); stack = []; show(); push('list', {});
   }
+  function openOrders() {
+    if (!tg || !tg.initData) { toast('Please open GDX STORE inside Telegram.', 'err'); return; }
+    ensureDom(); stack = []; show(); push('orders', {});
+  }
 
+  // Entry points are re-created whenever the host page re-renders (a one-time injection used to vanish with it).
   function injectEntry() {
     var head = document.querySelector('#landing .lp-head');
     if (!head || head.querySelector('.gp-hero-btn')) return;
     var b = document.createElement('button');
-    b.type = 'button'; b.className = 'gp-hero-btn'; b.textContent = 'MY LANDING PAGES & TRACKING';
+    b.type = 'button'; b.className = 'gp-hero-btn'; b.textContent = 'YOUR SERVICES';
     b.addEventListener('click', openList);
     head.appendChild(b);
   }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', injectEntry); else injectEntry();
+  var navTries = 0;
+  // Adds "Your Services" next to the existing bottom navigation (clones the Orders item so the style matches).
+  function injectNav() {
+    if (document.querySelector('[data-gdx-services]') || navTries++ > 20) return;
+    var all = document.body.querySelectorAll('*'), item = null, i, el, n, par;
+    for (i = 0; i < all.length && !item; i++) {
+      el = all[i];
+      if (el.children.length > 2 || !/^\s*orders\s*$/i.test(el.textContent || '')) continue;
+      for (n = el; n && n !== document.body; n = n.parentNode) {
+        par = n.parentNode;
+        if (par && par.children.length >= 3 && par.children.length <= 8 && /home/i.test(par.textContent) && /account/i.test(par.textContent)) { item = n; break; }
+      }
+    }
+    if (!item) return;
+    var c = item.cloneNode(true);
+    c.setAttribute('data-gdx-services', '1');
+    [c].concat([].slice.call(c.querySelectorAll('*'))).forEach(function (x) {
+      x.removeAttribute('onclick'); x.removeAttribute('id'); x.removeAttribute('href');
+      [].slice.call(x.attributes).forEach(function (at) { if (/^data-(?!gdx)/.test(at.name)) x.removeAttribute(at.name); });
+      x.classList.remove('active', 'on', 'selected');
+    });
+    var w = document.createTreeWalker(c, NodeFilter.SHOW_TEXT, null), t;
+    while ((t = w.nextNode())) { if (/orders/i.test(t.nodeValue)) t.nodeValue = t.nodeValue.replace(/orders/i, 'Your Services'); }
+    c.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); openList(); }, true);
+    item.parentNode.insertBefore(c, item.nextSibling);
+  }
+  function injectAll() { try { injectEntry(); injectNav(); } catch (e) { /* never break the host page */ } }
+  var injT = 0;
+  function scheduleInject() { if (injT) return; injT = setTimeout(function () { injT = 0; injectAll(); }, 400); }
+  function startInject() {
+    injectAll();
+    if (window.MutationObserver) new MutationObserver(scheduleInject).observe(document.body, { childList: true, subtree: true });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startInject); else startInject();
 
-  window.GDXProjects = { open: open, openList: openList };
-})() 
+  window.GDXProjects = { open: open, openList: openList, openServices: openList, openOrders: openOrders };
+})()

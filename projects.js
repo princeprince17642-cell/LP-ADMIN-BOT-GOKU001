@@ -93,12 +93,31 @@ function normalizeAttribution(b) {
         const v = clean(b[k], 200);
         out[k] = /^\{\{.*\}\}$/.test(v) ? '' : v;      // ignore an unresolved Meta placeholder
     });
-    ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'].forEach(k => { out[k] = clean(b[k], 200); });
+    ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'].forEach(k => { out[k] = noMacro(clean(b[k], 200)); });
+    ['campaign_name', 'adset_name', 'ad_name'].forEach(k => { out[k] = noMacro(out[k]); });
+    out.sourceType = classifySource(out);
     return out;
 }
 
+// An unresolved Meta macro such as {{campaign.id}} means the link was NOT opened from a real ad: never store it.
+function isAdTraffic(at) { return !!(at && (at.fbclid || at.fbc || at.campaign_id || at.adset_id || at.ad_id)); }
+function noMacro(v) { return /\{\{|\}\}|%7B%7B|%7D%7D/i.test(v) ? '' : v; }
+
+// How the visitor arrived. Never invented: 'direct' only when nothing says otherwise.
+function classifySource(a) {
+    if (a.fbclid || a.fbc || a.campaign_id || a.adset_id || a.ad_id) return 'meta_ad';
+    if (a.utm_source || a.utm_medium || a.utm_campaign) return 'utm_campaign';
+    if (a.referrer) {
+        let host = '';
+        try { host = new URL(a.referrer).hostname.toLowerCase(); } catch (e) { /* ignore */ }
+        if (/(^|\.)(google|bing|yahoo|duckduckgo|yandex|baidu)\./.test(host)) return 'organic';
+        return host ? 'referral' : 'direct';
+    }
+    return 'direct';
+}
+
 function snapshotAttribution(v) {
-    const s = { fbclid: v.fbclid || '', fbc: v.fbc || '', fbp: v.fbp || '', source_url: v.source_url || '' };
+    const s = { fbclid: v.fbclid || '', fbc: v.fbc || '', fbp: v.fbp || '', source_url: v.source_url || '', source_type: v.source_type || '' };
     ATTR_KEYS.forEach(k => { s[k] = v[k] || ''; });
     return s;
 }
@@ -110,7 +129,7 @@ const TRACK_DEFAULTS = [
     ['campaign_id', '{{campaign.id}}'], ['campaign_name', '{{campaign.name}}'],
     ['adset_id', '{{adset.id}}'], ['adset_name', '{{adset.name}}'],
     ['ad_id', '{{ad.id}}'], ['ad_name', '{{ad.name}}'],
-    ['utm_source', 'facebook'], ['utm_medium', 'paid'], ['utm_campaign', '{{campaign.name}}'],
+    ['utm_source', '{{site_source_name}}'], ['utm_medium', '{{placement}}'], ['utm_campaign', '{{campaign.name}}'],
     ['utm_content', '{{ad.name}}'], ['utm_term', '{{adset.name}}']
 ];
 const MACRO = /^\{\{[a-z_.]{3,30}\}\}$/;
@@ -168,12 +187,12 @@ function validateProjectInput(body, partial, findTemplate) {
         out.channelName = v;
     }
     if (need('headline')) {
-        const v = clean(b.headline, 200);
-        if (v.length < 3 || v.length > 120) bad('headline', 'Headline must be 3 to 120 characters.');
+        const v = clean(b.headline, 200);        // no longer shown on the page; optional
+        if (v.length > 120) bad('headline', 'Headline can be up to 120 characters.');
         out.headline = v;
     }
     if (need('buttonText')) {
-        const v = clean(b.buttonText, 60);
+        const v = clean(b.buttonText, 60) || 'JOIN NOW';
         if (v.length < 2 || v.length > 30) bad('buttonText', 'Button text must be 2 to 30 characters.');
         out.buttonText = v;
     }
@@ -223,7 +242,7 @@ function validateProjectInput(body, partial, findTemplate) {
         out.theme = theme;
     }
 
-    if (has('requireFbclid') || !partial) out.requireFbclid = b.requireFbclid === undefined ? true : !!b.requireFbclid;
+    if (has('requireFbclid') || !partial) out.requireFbclid = false;      // ad-origin gate removed: a page always opens, ad params only feed attribution
     if (has('turnstileEnabled') || !partial) out.turnstileEnabled = !!b.turnstileEnabled;
     if (partial && has('status')) {
         if (!['active', 'paused'].includes(b.status)) bad('status', 'Status must be active or paused.');
@@ -237,9 +256,13 @@ function validateProjectInput(body, partial, findTemplate) {
 
 const BREAKDOWN_DIMS = {
     campaign: ['campaign_id', 'campaign_name'], adset: ['adset_id', 'adset_name'], ad: ['ad_id', 'ad_name'],
-    utm_source: ['utm_source'], utm_medium: ['utm_medium'], utm_campaign: ['utm_campaign'], utm_content: ['utm_content']
+    utm_source: ['utm_source'], utm_medium: ['utm_medium'], utm_campaign: ['utm_campaign'], utm_content: ['utm_content'],
+    source_type: ['source_type']
 };
 // Safe percentage: null (shown as "-") when the denominator is zero. Never an estimate.
+function mapHistory(rows) {
+    return (rows || []).map(r => ({ type: r.type, at: r.occurred_at, campaignName: r.campaign_name || '', campaignId: r.campaign_id || '', utmSource: r.utm_source || '', sourceType: r.source_type || '', capiStatus: r.capi_status || undefined }));
+}
 function pct(num, den) { return den > 0 ? Math.round((num / den) * 10000) / 100 : null; }
 
 const STAT_FIELDS = ['page_views', 'join_clicks', 'link_requests', 'links_issued', 'join_requests',
@@ -287,9 +310,9 @@ function shapeAnalytics(raw) {
             { key: 'join_requests', label: 'Actual Telegram Join Requests', value: totals.joinRequests },
             { key: 'confirmed', label: 'Confirmed Channel Members', value: null, note: 'Unavailable: not independently verifiable with join-request webhooks.' }
         ],
-        capi: { sent: n(jr.capi_sent), failed: n(jr.capi_failed), pendingRetry: n(jr.capi_pending_retry), pending: n(jr.capi_pending) },
+        capi: { sent: n(jr.capi_sent), failed: n(jr.capi_failed), pendingRetry: n(jr.capi_pending_retry), pending: n(jr.capi_pending), skipped: n(jr.capi_skipped) },
         breakdowns,
-        recent: recent.map(r => ({ type: r.type, at: r.occurred_at, campaignName: r.campaign_name || '', campaignId: r.campaign_id || '', utmSource: r.utm_source || '', capiStatus: r.capi_status || undefined }))
+        recent: recent.map(r => ({ type: r.type, at: r.occurred_at, campaignName: r.campaign_name || '', campaignId: r.campaign_id || '', utmSource: r.utm_source || '', sourceType: r.source_type || '', capiStatus: r.capi_status || undefined }))
     };
 }
 
@@ -307,6 +330,46 @@ function createPgStore(getPool) {
         getOwned: (publicId, ownerId) => one(`SELECT * FROM projects WHERE public_id = $1 AND owner_telegram_id = $2`, [publicId, ownerId]),
         getByPublicId: (publicId) => one(`SELECT * FROM projects WHERE public_id = $1`, [publicId]),
         getById: (id) => one(`SELECT * FROM projects WHERE id = $1`, [id]),
+        async addHistory(projectId, kind, detail) {
+            try { await q(`INSERT INTO project_history (project_id, kind, detail) VALUES ($1, $2, $3::jsonb)`, [projectId, kind, JSON.stringify(detail || {})]); }
+            catch (e) { /* history must never break the main flow */ }
+        },
+        // One timeline of REAL recorded events: page views, JOIN NOW clicks, Join Requests, Meta delivery, created/updated, order.
+        async getHistory(projectId, limit) {
+            const r = await q(
+                `(SELECT CASE e.kind WHEN 'view' THEN 'page_view' ELSE 'join_click' END AS type, e.created_at AS occurred_at,
+                         v.campaign_name, v.campaign_id, v.utm_source, v.source_type, NULL::text AS capi_status
+                  FROM track_events e JOIN visitors v ON v.id = e.visitor_id WHERE e.project_id = $1 ORDER BY e.created_at DESC LIMIT $2)
+                 UNION ALL
+                 (SELECT 'join_request', j.created_at, COALESCE(j.attribution->>'campaign_name',''), COALESCE(j.attribution->>'campaign_id',''),
+                         COALESCE(j.attribution->>'utm_source',''), COALESCE(j.attribution->>'source_type',''), j.status
+                  FROM join_events j WHERE j.project_id = $1 ORDER BY j.created_at DESC LIMIT $2)
+                 UNION ALL
+                 (SELECT h.kind, h.created_at, '', '', '', '', NULL::text FROM project_history h WHERE h.project_id = $1 ORDER BY h.created_at DESC LIMIT $2)
+                 ORDER BY occurred_at DESC LIMIT $2`, [projectId, limit]);
+            return r.rows;
+        },
+        // Orders of one user (never mixes users). Landing-page orders carry their page.
+        async listOrders(ownerId) {
+            const r = await q(
+                `SELECT o.id, o.service_name, o.amount, o.status, o.note, o.created_at, o.updated_at, p.public_id AS project_public_id, p.channel_name
+                 FROM orders o LEFT JOIN projects p ON p.id = o.project_id AND p.owner_telegram_id = o.telegram_id
+                 WHERE o.telegram_id = $1 ORDER BY o.created_at DESC, o.id DESC LIMIT 300`, [ownerId]);
+            return r.rows;
+        },
+        async getOrder(orderId, ownerId) {
+            return one(
+                `SELECT o.id, o.service_name, o.amount, o.status, o.note, o.created_at, o.updated_at, p.public_id AS project_public_id
+                 FROM orders o LEFT JOIN projects p ON p.id = o.project_id AND p.owner_telegram_id = o.telegram_id
+                 WHERE o.id = $1 AND o.telegram_id = $2`, [orderId, ownerId]);
+        },
+        // The order is created for a REAL landing-page creation only (never back-filled for old pages). Idempotent per page.
+        async insertLandingOrder(ownerId, projectId, serviceName) {
+            return one(
+                `INSERT INTO orders (telegram_id, service_name, amount, status, note, project_id)
+                 VALUES ($1, $2, 0, 'completed', 'Landing page created', $3)
+                 ON CONFLICT (project_id) WHERE project_id IS NOT NULL DO NOTHING RETURNING id`, [ownerId, serviceName, projectId]);
+        },
         async recordEvent(projectId, visitorId, kind) {
             await q(`INSERT INTO track_events (project_id, visitor_id, kind) VALUES ($1, $2, $3)`, [projectId, visitorId, kind]);
         },
@@ -362,8 +425,8 @@ function createPgStore(getPool) {
         upsertVisitor: (projectId, v) => one(
             `INSERT INTO visitors (project_id, session_id, fbc, fbp, fbclid, source_url, referrer, ip, user_agent,
                 campaign_id, adset_id, ad_id, utm_source, utm_medium, utm_campaign, utm_content, utm_term,
-                campaign_name, adset_name, ad_name)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20)
+                campaign_name, adset_name, ad_name, source_type)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
              ON CONFLICT (project_id, session_id) DO UPDATE SET
                 fbc = CASE WHEN visitors.fbc = '' THEN EXCLUDED.fbc ELSE visitors.fbc END,
                 fbp = CASE WHEN visitors.fbp = '' THEN EXCLUDED.fbp ELSE visitors.fbp END,
@@ -383,11 +446,12 @@ function createPgStore(getPool) {
                 campaign_name = CASE WHEN visitors.campaign_name = '' THEN EXCLUDED.campaign_name ELSE visitors.campaign_name END,
                 adset_name = CASE WHEN visitors.adset_name = '' THEN EXCLUDED.adset_name ELSE visitors.adset_name END,
                 ad_name = CASE WHEN visitors.ad_name = '' THEN EXCLUDED.ad_name ELSE visitors.ad_name END,
+                source_type = CASE WHEN visitors.source_type IN ('', 'direct') THEN EXCLUDED.source_type ELSE visitors.source_type END,
                 last_seen_at = NOW()
              RETURNING id, created_at, (xmax = 0) AS inserted`,
             [projectId, v.sid, v.fbc, v.fbp, v.fbclid, v.sourceUrl, v.referrer, v.ip, v.ua,
              v.campaign_id, v.adset_id, v.ad_id, v.utm_source, v.utm_medium, v.utm_campaign, v.utm_content, v.utm_term,
-             v.campaign_name, v.adset_name, v.ad_name]),
+             v.campaign_name, v.adset_name, v.ad_name, v.sourceType || 'direct']),
         getVisitorById: (id) => one(`SELECT * FROM visitors WHERE id = $1`, [id]),
         getVisitorBySession: (projectId, sid) => one(`SELECT fbclid, fbc FROM visitors WHERE project_id = $1 AND session_id = $2`, [projectId, sid]),
         async countVisitorsByIp(projectId, ip, minutes) {
@@ -456,7 +520,8 @@ function createPgStore(getPool) {
                         COUNT(*) FILTER (WHERE status = 'sent') AS capi_sent,
                         COUNT(*) FILTER (WHERE status = 'failed') AS capi_failed,
                         COUNT(*) FILTER (WHERE status = 'pending_retry') AS capi_pending_retry,
-                        COUNT(*) FILTER (WHERE status = 'pending') AS capi_pending
+                        COUNT(*) FILTER (WHERE status = 'pending') AS capi_pending,
+                        COUNT(*) FILTER (WHERE status = 'skipped') AS capi_skipped
                  FROM join_events WHERE project_id = $1`, [projectId, tz]);
             // Visitors who pressed JOIN NOW but never sent a Join Request (a visitor with 3 clicks counts once)
             const drop = await one(
@@ -488,16 +553,7 @@ function createPgStore(getPool) {
                 breakdownRows[key] = { a, b };
             }
 
-            const recent = (await q(
-                `(SELECT CASE e.kind WHEN 'view' THEN 'page_view' ELSE 'join_click' END AS type, e.created_at AS occurred_at,
-                         v.campaign_name, v.campaign_id, v.utm_source, NULL::text AS capi_status
-                  FROM track_events e JOIN visitors v ON v.id = e.visitor_id WHERE e.project_id = $1 ORDER BY e.created_at DESC LIMIT 20)
-                 UNION ALL
-                 (SELECT 'join_request', j.created_at, COALESCE(j.attribution->>'campaign_name',''), COALESCE(j.attribution->>'campaign_id',''),
-                         COALESCE(j.attribution->>'utm_source',''), j.status
-                  FROM join_events j WHERE j.project_id = $1 ORDER BY j.created_at DESC LIMIT 20)
-                 ORDER BY occurred_at DESC LIMIT 25`, [projectId])).rows;
-
+            const recent = await this.getHistory(projectId, 25);
             return shapeAnalytics({ tz, ev, jr, drop, other, breakdownRows, recent });
         },
 
@@ -598,6 +654,7 @@ function mount(app, ctx) {
             requireFbclid: !!p.require_fbclid,
             turnstileEnabled: !!p.turnstile_enabled,
             pageUrl: pageUrl(p),
+            link: buildTrackingUrl(pageUrl(p), p.public_id),     // THE one shareable / ad-ready URL
             landingPageId: p.public_id,
             directUrl: pageUrl(p),
             previewUrl: pageUrl(p) + '?preview=1',      // opens the page with ALL tracking switched off
@@ -694,15 +751,7 @@ function mount(app, ctx) {
         }
         const a = normalizeAttribution(b);
         if (!RE.sid.test(a.sid)) return deny('bad_session', 400, 'Please reload the page and try again.');
-        // Attribution must survive navigation: if this request lost the ad params, use the ones saved at the first visit.
-        let hasClick = !!(a.fbclid || a.fbc);
-        if (!hasClick && project.require_fbclid) {
-            const prev = await store.getVisitorBySession(project.id, a.sid);
-            hasClick = !!(prev && (prev.fbclid || prev.fbc));
-        }
-        if (project.require_fbclid && !hasClick) {
-            return deny('no_fbclid', 403, 'This page only works when opened from the ad. Please open the ad link again.');
-        }
+        // No ad-origin requirement: direct / WhatsApp / Telegram / Instagram visitors can join too. Ad params are attribution only.
         if (await store.countLinksByIp(project.id, ip, RATE_WINDOW_MIN) >= LIMIT_LINKS_PER_IP) {
             return deny('rate_limit', 429, 'Too many attempts. Please wait a few minutes and try again.');
         }
@@ -783,6 +832,7 @@ function mount(app, ctx) {
         // counters: success once; "failed" only when it is final
         if (result.ok) await store.bump(project.id, 'capi_success');
         else if (state === 'failed') await store.bump(project.id, 'capi_failed');
+        await store.addHistory(project.id, result.ok ? 'capi_sent' : (state === 'failed' ? 'capi_failed' : 'capi_retry'), { eventId: j.event_id });
         logJson('capi', { project: project.public_id, kind: 'join', ok: result.ok, state, http: result.httpStatus,
             received: result.eventsReceived, fbtrace: result.fbtraceId, attempts: totalAttempts, error: result.error || undefined });
         return state;
@@ -841,7 +891,13 @@ function mount(app, ctx) {
         if (!row) { logJson('join_duplicate', { project: project.public_id }); return; }   // duplicate webhook / retry: one Subscribe per user per channel
         await store.bump(project.id, 'join_requests');
 
-        // 2) ONLY NOW tell Meta. A failure here leaves the row as pending_retry / failed, never deletes it.
+        // 2) ONLY NOW tell Meta - and only for traffic that really came from a Meta ad. A real Join Request from a direct /
+        //    WhatsApp / organic visitor stays saved and counted, but is never sent as an advertising conversion.
+        if (!isAdTraffic(attribution)) {
+            await store.finishJoinEvent(row.id, { state: 'skipped', attempts: 0, httpStatus: 0, eventsReceived: 0, fbtraceId: '', error: 'Not from a Meta ad: not sent to Meta', nextRetryAt: null });
+            await store.addHistory(project.id, 'capi_skipped', { eventId: eventId });
+            return;
+        }
         await deliverJoin(project, row, visitor);
     }
 
@@ -925,6 +981,11 @@ function mount(app, ctx) {
             await store.deleteById(row.id);          // roll back: no half-created project
             throw new UserError('Could not connect your bot to this page: ' + scrubError(e), 'botToken', 502);
         }
+        await store.addHistory(row.id, 'created', { channel: v.channelName });
+        try {
+            const ord = await store.insertLandingOrder(ownerId, row.id, 'Landing Page - ' + v.channelName);
+            if (ord) await store.addHistory(row.id, 'order_created', { orderId: String(ord.id) });
+        } catch (e) { logJson('order_link_failed', { project: publicId, message: scrubError(e) }); }   // the page itself is already saved
         logJson('project_created', { project: publicId, owner: String(ownerId), template: v.templateKey });
         res.json({ ok: true, project: serialize(row), pixelVerified: pixel.verified, warning: pixel.warning || undefined });
     }));
@@ -944,6 +1005,52 @@ function mount(app, ctx) {
             ok: true, project: serialize(p), stats, analytics,
             adParams: 'landing_page_id=' + p.public_id + '&campaign_id={{campaign.id}}&campaign_name={{campaign.name}}&adset_id={{adset.id}}&adset_name={{adset.name}}&ad_id={{ad.id}}&ad_name={{ad.name}}&utm_source=facebook&utm_medium=paid&utm_campaign={{campaign.name}}&utm_content={{ad.name}}&utm_term={{adset.name}}'
         });
+    }));
+
+    // ----- Your Services: everything this user owns, read from PostgreSQL on every call -----
+    const orderCode = (id) => 'GDX-' + String(id).padStart(6, '0');
+    app.get('/api/services', auth, handle(async (req, res) => {
+        needReady();
+        const rows = await store.listOwned(req.tgUser.id);
+        const orders = await store.listOrders(req.tgUser.id);
+        res.json({
+            ok: true,
+            landingPages: rows.map(serialize),
+            // Other purchased services already in this app (orders that are not landing pages). Nothing is invented.
+            otherServices: orders.filter(o => !o.project_public_id && !/^Landing Page/i.test(o.service_name)).map(o => ({
+                orderId: String(o.id), orderCode: orderCode(o.id), name: o.service_name, status: o.status, amount: Number(o.amount), createdAt: o.created_at }))
+        });
+    }));
+
+    function orderView(o) {
+        const p = o.project_public_id ? true : false;
+        return { id: String(o.id), code: orderCode(o.id), service: o.service_name, amount: Number(o.amount), status: o.status, note: o.note || '',
+            createdAt: o.created_at, updatedAt: o.updated_at, landingPageId: p ? o.project_public_id : null,
+            pageUrl: p ? `${pageBase}/p/${o.project_public_id}` : null,
+            link: p ? buildTrackingUrl(`${pageBase}/p/${o.project_public_id}`, o.project_public_id) : null };
+    }
+    app.get('/api/my-orders', auth, handle(async (req, res) => {
+        needReady();
+        res.json({ ok: true, orders: (await store.listOrders(req.tgUser.id)).map(orderView) });
+    }));
+    // Order details; for a landing-page order also that page's analytics + history. Only the buyer can open it (404 otherwise).
+    app.get('/api/my-orders/:id', auth, handle(async (req, res) => {
+        needReady();
+        const oid = Number(req.params.id);
+        const o = Number.isSafeInteger(oid) && oid > 0 ? await store.getOrder(oid, req.tgUser.id) : null;
+        if (!o) throw new UserError('Order not found.', null, 404);
+        const out = { ok: true, order: orderView(o) };
+        if (o.project_public_id) {
+            const p = await store.getOwned(o.project_public_id, req.tgUser.id);
+            if (p) { out.project = serialize(p); out.analytics = await store.getAnalytics(p.id, ANALYTICS_TZ); out.history = mapHistory(await store.getHistory(p.id, 50)); }
+        }
+        res.json(out);
+    }));
+    app.get('/api/projects/:id/history', auth, handle(async (req, res) => {
+        needReady();
+        const p = await owned(req);
+        const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 200);
+        res.json({ ok: true, history: mapHistory(await store.getHistory(p.id, limit)) });
     }));
 
     // Isolated analytics of ONE landing page. owned() = the caller must own it (404 otherwise); every query uses that project's id.
@@ -966,6 +1073,7 @@ function mount(app, ctx) {
         const patch = validateProjectInput(req.body, true, ctx.findTemplate);
         if (patch.turnstileEnabled && !turnstileReady) patch.turnstileEnabled = false;
         const row = await store.updateOwned(p.public_id, req.tgUser.id, patch);
+        await store.addHistory(p.id, 'updated', { fields: Object.keys(patch).filter(k => !/token/i.test(k)) });
         res.json({ ok: true, project: serialize(row) });
     }));
 
@@ -1088,4 +1196,4 @@ function setup(app, deps) {
     };
 }
 
-module.exports = { shapeAnalytics, setup, mount, normalizeAttribution, isBotUa, validateProjectInput, clientIp, createPgStore, buildTrackingUrl, pct };
+module.exports = { mapHistory, classifySource, shapeAnalytics, setup, mount, normalizeAttribution, isBotUa, validateProjectInput, clientIp, createPgStore, buildTrackingUrl, pct };

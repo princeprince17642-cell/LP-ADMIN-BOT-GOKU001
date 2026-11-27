@@ -196,6 +196,26 @@ async function initProjectSchema(pool) {
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_visitors_project_created ON visitors (project_id, created_at DESC)`);
     await pool.query(`CREATE INDEX IF NOT EXISTS idx_join_events_visitor ON join_events (project_id, visitor_id)`);
 
+    // ---- v3: simple pages, history, services/orders link (additive, idempotent) ----
+    await pool.query(`ALTER TABLE visitors ADD COLUMN IF NOT EXISTS source_type TEXT NOT NULL DEFAULT ''`);
+    // The "only Meta ad traffic" gate is removed: pages must open for everyone. Keep the column, stop using it.
+    await pool.query(`ALTER TABLE projects ALTER COLUMN require_fbclid SET DEFAULT FALSE`);
+    await pool.query(`UPDATE projects SET require_fbclid = FALSE WHERE require_fbclid`);
+    await pool.query(`ALTER TABLE projects ALTER COLUMN headline SET DEFAULT ''`);
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS project_history (
+            id          BIGSERIAL PRIMARY KEY,
+            project_id  BIGINT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+            kind        TEXT NOT NULL,
+            detail      JSONB NOT NULL DEFAULT '{}'::jsonb,
+            created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )
+    `);
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_project_history ON project_history (project_id, created_at DESC)`);
+    // A landing-page order points at its page; deleting the page keeps the order (project_id becomes NULL)
+    await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS project_id BIGINT REFERENCES projects(id) ON DELETE SET NULL`);
+    await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS ux_orders_project ON orders (project_id) WHERE project_id IS NOT NULL`);
+
     console.log('Project schema ready: projects, visitors, invite_links, join_events, capi_log, stats tables OK');
 }
 

@@ -198,6 +198,16 @@ body.t-neon-tech{--font:'Courier New',ui-monospace,Menlo,Consolas,monospace;--r-
 .t-neon-tech .sec h2{text-transform:uppercase;letter-spacing:.08em;text-shadow:0 0 12px rgba(var(--ar),.5)}`
 };
 
+// Minimal page: one centered column, channel name + one button.
+const MIN_CSS = `
+body.min main.solo{min-height:100vh;min-height:100svh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:max(28px,env(safe-area-inset-top)) 24px max(28px,env(safe-area-inset-bottom));text-align:center;position:relative;z-index:1;max-width:560px;margin:0 auto}
+body.min .emblem{width:112px;height:112px;margin:0 0 28px}
+body.min .emblem img,body.min .emblem b{width:100%;height:100%}
+body.min h1.cname{font-size:clamp(30px,8.5vw,46px);line-height:1.12;margin:0 0 34px;letter-spacing:-.01em;font-weight:800;text-transform:none;overflow-wrap:anywhere}
+body.min .btn{width:100%;max-width:360px;min-height:60px;font-size:18px;letter-spacing:.06em}
+body.min .hint{margin-top:16px}
+body.min .ts{margin-top:14px}`;
+
 function defaultGuide(name) {
     return [
         'Tap the join button on this page. Telegram opens right away.',
@@ -244,7 +254,7 @@ function ck(n){var m=document.cookie.match(new RegExp('(?:^|; )'+n+'=([^;]*)'));
 function load(){try{return JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){return null}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(A))}catch(e){}}
 var q=new URLSearchParams(location.search),cur={};
-KEYS.forEach(function(k){var v=q.get(k);if(v)cur[k]=v});
+KEYS.forEach(function(k){var v=q.get(k);if(v&&!/\{\{|\}\}/.test(v))cur[k]=v});
 var A=load();
 if(!A||!A.sid||(cur.fbclid&&A.attrs&&A.attrs.fbclid!==cur.fbclid)){A={sid:rnd(),attrs:cur,url:location.href,ref:document.referrer||'',t:Date.now()}}
 else{KEYS.forEach(function(k){if(!A.attrs[k]&&cur[k])A.attrs[k]=cur[k]})}
@@ -278,11 +288,6 @@ async function join(retried){
 }
 btns.forEach(function(b){b.addEventListener('click',function(){join(false)})});
 window.__tsDone=function(t){window.__ts=t};
-var st=document.getElementById('sticky'),hero=document.getElementById('heroBtn');
-function onScroll(){var y=window.scrollY||0,hb=hero.getBoundingClientRect();st.classList.toggle('show',hb.bottom<0&&y>300)}
-window.addEventListener('scroll',onScroll,{passive:true});onScroll();
-if('IntersectionObserver' in window){var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}})},{threshold:.12});document.querySelectorAll('.reveal').forEach(function(n){io.observe(n)})}
-else{document.querySelectorAll('.reveal').forEach(function(n){n.classList.add('in')})}
 })();`;
 
     return `<!DOCTYPE html>
@@ -291,79 +296,22 @@ else{document.querySelectorAll('.reveal').forEach(function(n){n.classList.add('i
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="${esc(p.bg)}">
-<title>${esc(name)} - ${esc(headline)}</title>
-<meta name="description" content="${esc(subtitle)}">
+<title>${esc(name)}</title>
 <meta name="robots" content="noindex">
-<style>${vars}${CSS}${THEME_CSS[key]}</style>
+<style>${vars}${CSS}${THEME_CSS[key]}${MIN_CSS}</style>
 <noscript><style>.reveal{opacity:1!important;transform:none!important}</style></noscript>
 ${pixel && !o.preview ? `<script>${pixelSnippet}</script>` : ''}
 ${tsKey ? '<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>' : ''}
 </head>
-<body class="t-${key}">
+<body class="t-${key} min">
 <div class="bgfx" aria-hidden="true"></div>
-<header class="top">
-  <div class="brand">${img ? `<img class="mini" src="${esc(img)}" alt="" referrerpolicy="no-referrer">` : `<b class="mini">${initial}</b>`}<span>${esc(name)}</span></div>
-  <div class="tag">FULL GUIDE</div>
-</header>
-<main>
-  <section class="hero reveal">
-    <div class="emblem">${img ? `<img src="${esc(img)}" alt="${esc(name)}" referrerpolicy="no-referrer">` : `<b>${initial}</b>`}</div>
-    <div class="eyebrow">FULL GUIDE INSIDE</div>
-    <h1>${esc(headline)}</h1>
-    <p class="sub">${esc(subtitle)}</p>
-    <button type="button" class="btn" id="heroBtn" data-join><span class="spin"></span><span class="ic">${icon('send')}</span><span class="lbl">${esc(button)}</span></button>
-    ${tsKey ? `<div class="ts"><div class="cf-turnstile" data-sitekey="${esc(tsKey)}" data-callback="__tsDone" data-theme="auto"></div></div>` : ''}
-    <p class="micro">Opens in Telegram &middot; Takes a few seconds</p>
-    <p class="hint" id="hint"></p>
-  </section>
-
-  <section class="sec reveal" id="about">
-    <h2>About this community</h2>
-    <p class="lead">${esc(about)}</p>
-    <div class="grid three">
-      <div class="card"><div class="ico">${icon('bell')}</div><h3>Community updates</h3><p>Follow announcements and posts as soon as they are shared.</p></div>
-      <div class="card"><div class="ico">${icon('book')}</div><h3>Shared resources</h3><p>Find the guide and useful material inside the channel.</p></div>
-      <div class="card"><div class="ico">${icon('users')}</div><h3>All in Telegram</h3><p>Everything happens in the Telegram app you already use.</p></div>
-    </div>
-  </section>
-
-  <section class="sec reveal">
-    <h2>Why join</h2>
-    <p class="lead">A simple way to get started.</p>
-    <div class="grid two">
-      <div class="card"><div class="ico">${icon('bolt')}</div><h3>One-tap request</h3><p>Send your join request straight from this page.</p></div>
-      <div class="card"><div class="ico">${icon('send')}</div><h3>Opens in Telegram</h3><p>No sign-up form. The button takes you directly to Telegram.</p></div>
-      <div class="card"><div class="ico">${icon('shield')}</div><h3>Approved by admins</h3><p>Join requests are reviewed by the channel admins.</p></div>
-      <div class="card"><div class="ico">${icon('exit')}</div><h3>Leave any time</h3><p>You stay in control and can leave the channel whenever you like.</p></div>
-    </div>
-  </section>
-
-  <section class="sec reveal" id="guide">
-    <h2>Your full guide</h2>
-    <p class="lead">Here is what happens after you tap the button.</p>
-    <ol class="steps">${guide.map(g => `<li><span>${esc(g)}</span></li>`).join('')}</ol>
-    <div class="center">${joinBtn('Access full guide')}</div>
-  </section>
-
-  <section class="sec reveal" id="faq">
-    <h2>Good to know</h2>
-    <details><summary>How do I join?</summary><p>Tap any join button on this page. Telegram opens and you send a join request to the channel.</p></details>
-    <details><summary>Is access instant?</summary><p>You send a join request and a channel admin approves it, so the timing can vary.</p></details>
-    <details><summary>Do I need a Telegram account?</summary><p>Yes. Telegram is free. If you do not have the app yet, Telegram will guide you to install it.</p></details>
-    <details><summary>Can I leave later?</summary><p>Yes. You can leave the channel at any time from the Telegram app.</p></details>
-    <details><summary>What data is used?</summary><p>To measure advertising results, this page uses the Meta Pixel and records technical visit data such as your IP address and browser. When you send a join request, the channel's bot receives your Telegram user ID and may share a hashed version of it with Meta for ad measurement.</p></details>
-  </section>
-
-  <section class="final reveal">
-    <h2>Ready to join?</h2>
-    <p class="lead">${esc(name)} is one tap away.</p>
-    ${joinBtn('Join our community')}
-  </section>
+<main class="solo">
+  <div class="emblem">${img ? `<img src="${esc(img)}" alt="" referrerpolicy="no-referrer">` : `<b>${initial}</b>`}</div>
+  <h1 class="cname">${esc(name)}</h1>
+  <button type="button" class="btn" id="heroBtn" data-join><span class="spin"></span><span class="ic">${icon('send')}</span><span class="lbl">${esc(button)}</span></button>
+  ${tsKey ? `<div class="ts"><div class="cf-turnstile" data-sitekey="${esc(tsKey)}" data-callback="__tsDone" data-theme="auto"></div></div>` : ''}
+  <p class="hint" id="hint"></p>
 </main>
-<footer>
-  <p>This page is operated by the owner of ${esc(name)}. It is not affiliated with, endorsed by or sponsored by Telegram or Meta.</p>
-</footer>
-<div class="sticky" id="sticky">${joinBtn(button)}</div>
 <div class="toast" id="toast" role="alert"></div>
 <script>${clientJs}</script>
 </body>
