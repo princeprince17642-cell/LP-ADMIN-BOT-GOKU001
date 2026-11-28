@@ -186,6 +186,15 @@ function validateProjectInput(body, partial, findTemplate) {
         if (v.length < 2 || v.length > 60) bad('channelName', 'Channel name must be 2 to 60 characters.');
         out.channelName = v;
     }
+    if (need('channelUrl')) {      // optional Telegram channel link; stored as https://t.me/...
+        let v = clean(b.channelUrl, 200);
+        if (v) {
+            if (/^@[A-Za-z0-9_]{4,32}$/.test(v)) v = 'https://t.me/' + v.slice(1);
+            v = v.replace(/^http:\/\//i, 'https://').replace(/^(t|telegram)\.me\//i, 'https://$1.me/');
+            if (!/^https:\/\/(t|telegram)\.me\/[A-Za-z0-9_+\/-]{3,100}$/i.test(v)) bad('channelUrl', 'Channel URL must look like https://t.me/yourchannel');
+        }
+        out.channelUrl = v;
+    }
     if (need('headline')) {
         const v = clean(b.headline, 200);        // no longer shown on the page; optional
         if (v.length > 120) bad('headline', 'Headline can be up to 120 characters.');
@@ -383,16 +392,16 @@ function createPgStore(getPool) {
         insertProject: (p) => one(
             `INSERT INTO projects (public_id, owner_telegram_id, status, template_key, theme, content, channel_name, headline,
                 button_text, image_url, pixel_id, capi_token_enc, test_event_code, bot_token_enc, bot_id, bot_username,
-                channel_id, channel_title, webhook_secret_hash, require_fbclid, turnstile_enabled, validated_at)
-             VALUES ($1,$2,'active',$3,$4::jsonb,$5::jsonb,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,NOW())
+                channel_id, channel_title, webhook_secret_hash, require_fbclid, turnstile_enabled, channel_url, validated_at)
+             VALUES ($1,$2,'active',$3,$4::jsonb,$5::jsonb,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,NOW())
              RETURNING *`,
             [p.publicId, p.ownerId, p.templateKey, JSON.stringify(p.theme), JSON.stringify(p.content), p.channelName, p.headline,
              p.buttonText, p.imageUrl, p.pixelId, p.capiTokenEnc, p.testEventCode, p.botTokenEnc, p.botId, p.botUsername,
-             p.channelId, p.channelTitle, p.webhookSecretHash, p.requireFbclid, p.turnstileEnabled]),
+             p.channelId, p.channelTitle, p.webhookSecretHash, p.requireFbclid, p.turnstileEnabled, p.channelUrl || '']),
         async markWebhook(id) { await q(`UPDATE projects SET webhook_set_at = NOW() WHERE id = $1`, [id]); },
         async deleteById(id) { await q(`DELETE FROM projects WHERE id = $1`, [id]); },
         async updateOwned(publicId, ownerId, patch) {
-            const map = { templateKey: 'template_key', channelName: 'channel_name', headline: 'headline', buttonText: 'button_text',
+            const map = { templateKey: 'template_key', channelName: 'channel_name', channelUrl: 'channel_url', headline: 'headline', buttonText: 'button_text',
                 imageUrl: 'image_url', testEventCode: 'test_event_code', requireFbclid: 'require_fbclid',
                 turnstileEnabled: 'turnstile_enabled', status: 'status', theme: 'theme', content: 'content' };
             const sets = []; const vals = [publicId, ownerId];
@@ -651,6 +660,7 @@ function mount(app, ctx) {
             botUsername: p.bot_username,
             channelId: String(p.channel_id),
             channelTitle: p.channel_title,
+            channelUrl: p.channel_url || '',
             requireFbclid: !!p.require_fbclid,
             turnstileEnabled: !!p.turnstile_enabled,
             pageUrl: pageUrl(p),
@@ -967,7 +977,7 @@ function mount(app, ctx) {
                 pixelId: v.pixelId, capiTokenEnc: secure.encrypt(v.capiToken), testEventCode: v.testEventCode,
                 botTokenEnc: secure.encrypt(v.botToken), botId: botIdFromToken, botUsername: check.bot.username,
                 channelId: v.channelId, channelTitle: check.chat.title, webhookSecretHash: sha256(webhookSecret),
-                requireFbclid: v.requireFbclid, turnstileEnabled: v.turnstileEnabled && turnstileReady
+                requireFbclid: v.requireFbclid, turnstileEnabled: v.turnstileEnabled && turnstileReady, channelUrl: v.channelUrl || ''
             });
         } catch (e) {
             if (e && e.code === '23505') throw new UserError('This bot or channel is already used in another project.', 'botToken', 409);

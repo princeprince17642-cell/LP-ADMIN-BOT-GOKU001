@@ -13,7 +13,7 @@
   var SWATCHES = ['#d4af37', '#ec4899', '#00e5ff', '#22c55e', '#3b82f6', '#f97316', '#a78bfa', '#ef4444'];
   var BGS = [['template', 'Template default'], ['midnight', 'Midnight'], ['aurora', 'Aurora'], ['sunset', 'Sunset'], ['carbon', 'Carbon'], ['royal', 'Royal']];
   var FIELD_IDS = { templateKey: 'gp-tpl', pixelId: 'gp-pixel', capiToken: 'gp-capi', testEventCode: 'gp-test', botToken: 'gp-bot', channelId: 'gp-channel',
-    channelName: 'gp-name', headline: 'gp-headline', subtitle: 'gp-sub', buttonText: 'gp-button', imageUrl: 'gp-image', description: 'gp-desc', guidePoints: 'gp-guide', theme: 'gp-theme' };
+    channelName: 'gp-name', channelUrl: 'gp-channelurl', headline: 'gp-headline', subtitle: 'gp-sub', buttonText: 'gp-button', imageUrl: 'gp-image', description: 'gp-desc', guidePoints: 'gp-guide', theme: 'gp-theme' };
 
   var AD_PARAMS = 'campaign_id={{campaign.id}}&campaign_name={{campaign.name}}&adset_id={{adset.id}}&adset_name={{adset.name}}&ad_id={{ad.id}}&ad_name={{ad.name}}&utm_source=facebook&utm_medium=paid&utm_campaign={{campaign.name}}&utm_content={{ad.name}}&utm_term={{adset.name}}';
   var root, body, titleEl, stack = [], cfg = null, lastKey = 'premium-dark', accent = '', bgStyle = 'template', verified = null;
@@ -42,7 +42,12 @@
   var toastTimer;
   function toast(msg, kind) {
     var t = $('toast');
-    if (!t) { alert(msg); return; }
+    if (!t) {      // host page has no toast element: create one instead of a blocking alert()
+      t = document.createElement('div'); t.id = 'toast'; t.className = 'toast';
+      t.setAttribute('style', 'position:fixed;left:50%;bottom:90px;transform:translateX(-50%);z-index:100000;background:#1b2440;color:#fff;padding:12px 18px;border-radius:12px;max-width:86%;font-size:14px;display:none');
+      document.body.appendChild(t);
+    }
+    if (t.getAttribute('style') && /display:none/.test(t.getAttribute('style'))) t.style.display = 'block';
     t.textContent = msg; t.className = 'toast show ' + (kind || '');
     clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.className = 'toast'; }, 3200);
   }
@@ -217,6 +222,7 @@
 
     h += '<div class="gp-card"><div class="gp-h">' + (edit ? 'PAGE CONTENT' : '4. PAGE CONTENT') + '</div>' +
       '<label for="gp-name">Channel / community name</label><input type="text" id="gp-name" maxlength="60" autocomplete="off" value="' + esc(edit ? p.channelName : '') + '" placeholder="e.g. My Community"><div class="gp-err" data-err="channelName"></div>' +
+      '<label for="gp-channelurl">Channel URL <small>(optional, e.g. https://t.me/yourchannel)</small></label><input type="url" id="gp-channelurl" maxlength="200" autocomplete="off" value="' + esc(edit ? (p.channelUrl || '') : '') + '" placeholder="https://t.me/yourchannel"><div class="gp-err" data-err="channelUrl"></div>' +
       '<label for="gp-image">Channel image URL <small>(https, optional)</small></label><input type="url" id="gp-image" autocomplete="off" value="' + esc(edit ? p.imageUrl : '') + '" placeholder="https://..."><div class="gp-err" data-err="imageUrl"></div></div>';
 
     h += '<div class="gp-card"><div class="gp-h">' + (edit ? 'THEME' : '5. THEME') + '</div><div class="gp-sub">Accent color</div><div class="gp-chips" id="gp-sws">' + swHtml + '</div>' +
@@ -287,7 +293,7 @@
     var tplOn = body.querySelector('.gp-tpl.on');
     var o = {
       templateKey: tplOn ? tplOn.getAttribute('data-tpl') : lastKey,
-      channelName: val('gp-name'), imageUrl: val('gp-image'),
+      channelName: val('gp-name'), channelUrl: val('gp-channelurl'), imageUrl: val('gp-image'),
       testEventCode: val('gp-test'), theme: theme, turnstileEnabled: !!($('gp-ts') && $('gp-ts').checked)
     };
     if (!edit) { o.pixelId = val('gp-pixel'); o.capiToken = val('gp-capi'); o.botToken = val('gp-bot'); o.channelId = val('gp-channel'); }
@@ -304,10 +310,8 @@
     }
     if (o.testEventCode && !/^[A-Za-z0-9_-]{3,40}$/.test(o.testEventCode)) errs.push(['testEventCode', 'Test Event Code looks wrong (example: TEST12345).']);
     if (o.channelName.length < 2 || o.channelName.length > 60) errs.push(['channelName', 'Name must be 2 to 60 characters.']);
-    if (o.headline.length < 3 || o.headline.length > 120) errs.push(['headline', 'Headline must be 3 to 120 characters.']);
-    if (o.buttonText.length < 2 || o.buttonText.length > 30) errs.push(['buttonText', 'Button text must be 2 to 30 characters.']);
+    if (o.channelUrl && !/^(https?:\/\/)?(t|telegram)\.me\/[A-Za-z0-9_+\/-]{3,100}$/i.test(o.channelUrl) && !/^@[A-Za-z0-9_]{4,32}$/.test(o.channelUrl)) errs.push(['channelUrl', 'Channel URL must look like https://t.me/yourchannel']);
     if (o.imageUrl && !/^https:\/\/\S+$/i.test(o.imageUrl)) errs.push(['imageUrl', 'Image URL must start with https://']);
-    if (o.guidePoints.length > 5) errs.push(['guidePoints', 'Use at most 5 guide points.']);
     return errs;
   }
 
@@ -493,7 +497,7 @@
     api('/api/projects/' + id).then(function (d) {
       var p = d.project, s = d.stats, t = s.totals;
       titleEl.textContent = p.channelName.toUpperCase();
-      var h = '<div class="gp-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div><b style="font-size:16px">' + esc(p.channelName) + '</b><div class="gp-sub" style="margin:2px 0 0">' + esc(tplName(p.templateKey)) + ' &middot; bot @' + esc(p.botUsername) + '</div></div><span class="gp-chip2 ' + esc(p.status) + '">' + esc(p.status.toUpperCase()) + '</span></div></div>';
+      var h = '<div class="gp-card"><div style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div><b style="font-size:16px">' + esc(p.channelName) + '</b><div class="gp-sub" style="margin:2px 0 0">' + esc(tplName(p.templateKey)) + ' &middot; bot @' + esc(p.botUsername) + (p.channelUrl ? '<br>' + esc(p.channelUrl) : '') + '</div></div><span class="gp-chip2 ' + esc(p.status) + '">' + esc(p.status.toUpperCase()) + '</span></div></div>';
 
 
       h += '<div class="gp-card"><div class="gp-h">YOUR LINK</div><div class="gp-sub">ID: <b>' + esc(p.landingPageId) + '</b> &middot; Created ' + esc(fmtDate(p.createdAt)) + '<br>One link for everything: paste it in your Meta ad or share it anywhere. Campaign details are filled in by Meta and tracked automatically.</div><div class="gp-url" id="d-track"><span style="flex:1">' + esc(p.link) + '</span></div>' +

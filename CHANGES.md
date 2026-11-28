@@ -1,3 +1,20 @@
+# v3.1 — create-flow regression fixed (read this first)
+
+## What I broke and fixed
+1. **"Create Landing Page" did nothing — my bug.** In v3 I removed the headline / button-text / guide fields from the form, but `clientValidate()` still ran `o.headline.length`, `o.buttonText.length`, `o.guidePoints.length`. Those were now `undefined`, so the click threw a TypeError before any request was sent. Fixed (those checks removed). My earlier tests never clicked the real form, which is why I missed it; the new browser test does.
+2. **Channel URL field.** Honest note: in the original code (`_original_backup/projects-ui.js`) there was no field called "Channel URL" — the fields were Channel ID, Channel/community name and Channel *image* URL. Since you want it, it now exists: optional "Channel URL" in create AND edit, saved in a new `projects.channel_url` column, shown in the page details and returned by the API. Accepts `https://t.me/x`, `t.me/x`, `@x`, `t.me/+invite`; normalised to `https://t.me/...`; anything else is rejected with a message. It is never printed on the public landing page (name + JOIN NOW only). Channel Name and Image URL are unchanged.
+3. **`toast()`** fell back to a blocking `alert()` when the host page has no `#toast` element (froze my test browser). It now creates its own element.
+4. **Migration hardening:** critical columns (`channel_url`, `source_type`, `project_history`) are created first; optional steps (orders link, require_fbclid reset) are isolated, so one failing statement can never block page creation. Dry-run against a fake DB with a forced failure: finishes normally.
+Other v3 changes were re-checked for breakage (details/edit/pause/resume/delete/check-connection/download-HTML/orders/restart persistence): nothing else was broken.
+
+## What was actually tested (executed)
+- `node tests/run.js`: **R1 24/24, R2 19/19, R3 21/21 = 64 tests** (real code, mocked Telegram/Meta, in-memory store).
+- `tests/browser/create-flow-e2e.js` (headless Chrome driving the real dashboard JS + public page JS against the real server routes, mocked DB/Telegram/Meta), **all PASS**: fill and submit the create form → page created, saved, details opened; validation errors shown; Channel URL saved/shown/edited; server restart + refresh → page still listed; public page opens (ad URL and direct URL); JOIN NOW click recorded and sends **no** Subscribe; real `chat_join_request` webhook → saved in DB first, then exactly one Subscribe with campaign / ad set / ad / UTM / fbclid / landing_page_id/url; duplicate webhook ignored; direct visitor's Join Request saved but not sent to Meta; dashboard analytics numbers; order exists; CHECK CONNECTION, PAUSE, RESUME, DELETE work; no JavaScript errors.
+- Static check: SQL placeholder counts of insertProject / upsertVisitor / insertJoinEvent match their parameter lists.
+## NOT tested (needs your environment)
+Real PostgreSQL (the SQL is only statically checked), live Meta, live Telegram, your real `index.html` / `secure.js` (not provided), real Telegram WebApp.
+
+---
 # v3 corrections — persistence, minimal page, open access, Your Services, Orders, history
 (v2 notes: CHANGES_v2.md. Originals of the first upload: `_original_backup/`.)
 
